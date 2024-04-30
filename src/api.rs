@@ -20,6 +20,7 @@ use kore_base::{
 use std::{convert::TryFrom, str::FromStr};
 
 /// Kore Node API.
+#[derive(Clone)]
 pub struct KoreApi {
     api: Api,
     keys: KeyPair,
@@ -74,7 +75,7 @@ impl KoreApi {
                 create_request.public_key = Some(public_key.to_str());
             }
         }
-
+        
         let Ok(event_request) = BaseEventRequest::try_from(request.request) else {
             return Err(NodeError::InvalidParameter("event request".to_owned()));
         };
@@ -89,6 +90,7 @@ impl KoreApi {
             None => BaseSignature::new(&event_request, &self.keys, self.digest_derivator)
                 .map_err(|_| NodeError::InternalApi("Failed to create signature".to_owned()))?,
         };
+
         match self
             .api
             .external_request(BaseSigned {
@@ -140,8 +142,6 @@ impl KoreApi {
 
 #[cfg(test)]
 mod tests {
-
-    use super::*;
     #[cfg(feature = "leveldb")]
     use crate::node::{KoreNode,tests::create_leveldb_node};
     use crate::model::{StartRequest, EventRequest, SignedEventRequest};
@@ -155,17 +155,21 @@ mod tests {
         let node = node.unwrap();
         node.bind_with_shutdown(signal::ctrl_c());
         let api = node.api().clone();
-        node.run(|_| {}).await;
-        assert!(api.send_event_request(SignedEventRequest {
-            request: EventRequest::Create(StartRequest {
-                governance_id: "".to_owned(),
-                schema_id: "governance".to_owned(),
-                namespace: "agro.wine".to_owned(),
-                name: "wine_track".to_owned(),
-                public_key: None,
-            }),
-            signature: None,
-        }).await.is_ok());
 
+        tokio::spawn(async move {
+            node.run(|_| {}).await;
+        });
+        tokio::spawn(async move {
+            assert!(api.send_event_request(SignedEventRequest {
+                request: EventRequest::Create(StartRequest {
+                    governance_id: "".to_owned(),
+                    schema_id: "governance".to_owned(),
+                    namespace: "agro.wine".to_owned(),
+                    name: "wine_track".to_owned(),
+                    public_key: None,
+                }),
+                signature: None,
+            }).await.is_ok());
+        });
     }
 }

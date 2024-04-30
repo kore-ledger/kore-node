@@ -9,9 +9,10 @@ use crate::error::NodeError;
 use kore_base::{
     identifier::{Derivable, DigestIdentifier, KeyIdentifier},
     request::{
-        EOLRequest as BaseEOLRequest, FactRequest as BaseFactRequest, KoreRequest, RequestState,
-        StartRequest as BaseStartRequest, TransferRequest as BaseTransferRequest,
+        EOLRequest as BaseEOLRequest, FactRequest as BaseFactRequest, KoreRequest as BaseKoreRequest, RequestState,
+        StartRequest as BaseStartRequest, TransferRequest as BaseTransferRequest
     },
+    signature::Signed as BaseSigned,
     EventRequest as BaseEventRequest, ValueWrapper,
 };
 
@@ -46,7 +47,7 @@ impl TryFrom<EventRequest> for BaseEventRequest {
     type Error = NodeError;
     fn try_from(request: EventRequest) -> Result<Self, Self::Error> {
         match request {
-            EventRequest::Create(request) => Ok(Self::Create(request.try_into()?)),
+            EventRequest::Create(request) => Ok(Self::Create(BaseStartRequest::try_from(request)?)),
             EventRequest::Fact(request) => Ok(Self::Fact(request.try_into()?)),
             EventRequest::Transfer(request) => Ok(Self::Transfer(request.try_into()?)),
             EventRequest::EOL(request) => Ok(Self::EOL(request.try_into()?)),
@@ -214,8 +215,8 @@ impl TryFrom<SignedEventRequest> for Signed<kore_base::EventRequest> {
     }
 }
 
-impl From<KoreRequest> for SignedEventRequest {
-    fn from(request: KoreRequest) -> Self {
+impl From<BaseKoreRequest> for SignedEventRequest {
+    fn from(request: BaseKoreRequest) -> Self {
         let signed: Signed<EventRequest> = Signed {
             content: request.event_request.content.into(),
             signature: request.event_request.signature.into(),
@@ -235,7 +236,7 @@ pub struct EventRequestResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct KoreRequestState {
+pub struct KoreRequest {
     /// The identifier of the request.
     pub id: String,
     /// The identifier of the subject associated with the request, if any.
@@ -248,4 +249,41 @@ pub struct KoreRequestState {
     pub state: RequestState,
     /// The success status of the request, if any.
     pub success: Option<bool>,
+}
+
+impl From<BaseKoreRequest> for KoreRequest {
+    fn from(request: BaseKoreRequest) -> Self {
+        let event_request = SignedEventRequest::from(request.clone());
+
+        Self {
+            id: request.id.to_str().to_string(),
+            subject_id: Some(request.subject_id.unwrap_or_default().to_string()),
+            sn: request.sn,
+            event_request,
+            state: request.state,
+            success: request.success
+        }
+    }
+}
+
+impl TryFrom<KoreRequest> for BaseKoreRequest {
+    type Error = NodeError;
+    
+    fn try_from(request: KoreRequest) -> Result<Self, Self::Error> {
+        type SignedType = Signed<kore_base::EventRequest>;
+        type BaseSignedType = BaseSigned<kore_base::EventRequest>;
+        
+        Ok(Self {
+            id: DigestIdentifier::from_str(&request.id).map_err(|_| {
+                NodeError::InvalidParameter("Invalid id identifier".to_string())
+            })?,
+            subject_id: Some(DigestIdentifier::from_str(&request.subject_id.unwrap_or_default()).map_err(|_| {
+                NodeError::InvalidParameter("Invalid subject identifier".to_string())
+            })?),
+            sn: request.sn,
+            event_request: BaseSignedType::try_from(SignedType::try_from(request.event_request)?)?,
+            state: request.state,
+            success: request.success,
+        })
+    }
 }

@@ -51,7 +51,6 @@ pub trait KoreNode {
 
 /// Kore node with LevelDB database.
 #[cfg(feature = "leveldb")]
-#[derive(Clone)]
 pub struct LevelDBNode {
     /// Kore API.
     api: KoreApi,
