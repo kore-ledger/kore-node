@@ -155,11 +155,8 @@ mod tests {
         let node = node.unwrap();
         node.bind_with_shutdown(signal::ctrl_c());
         let api = node.api().clone();
-
-        tokio::spawn(async move {
-            node.run(|_| {}).await;
-        });
-        tokio::spawn(async move {
+         
+        assert!(tokio::spawn(async move {
             assert!(api.send_event_request(SignedEventRequest {
                 request: EventRequest::Create(StartRequest {
                     governance_id: "".to_owned(),
@@ -169,7 +166,7 @@ mod tests {
                     public_key: None,
                 }),
                 signature: None,
-            }).await.is_ok());
-        });
+            }).await.is_ok())
+        }).await.is_ok());
     }
 }

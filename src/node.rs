@@ -241,16 +241,12 @@ impl KoreNode for SqliteNode {
 pub mod tests {
 
     use super::*;
-    use tokio::signal;
 
     #[cfg(feature = "leveldb")]
     #[tokio::test]
     async fn test_leveldb_node() {
         let node = create_leveldb_node();
         assert!(node.is_ok());
-        let node = node.unwrap();
-        node.bind_with_shutdown(signal::ctrl_c());
-        node.run(|_| {}).await;
     }
 
     #[cfg(feature = "leveldb")]
