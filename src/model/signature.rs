@@ -21,7 +21,7 @@ use std::fmt::Debug;
 
 /// Signature model.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Signature {
+pub struct NodeSignature {
     /// Public key of the issuer
     signer: String, // KeyIdentifier
     /// Timestamp at which the signature was made
@@ -32,7 +32,7 @@ pub struct Signature {
     content_hash: String,
 }
 
-impl From<BaseSignature> for Signature {
+impl From<BaseSignature> for NodeSignature {
     fn from(signature: BaseSignature) -> Self {
         Self {
             signer: signature.signer.to_str(),
@@ -43,9 +43,9 @@ impl From<BaseSignature> for Signature {
     }
 }
 
-impl TryFrom<Signature> for BaseSignature {
+impl TryFrom<NodeSignature> for BaseSignature {
     type Error = NodeError;
-    fn try_from(signature: Signature) -> Result<Self, Self::Error> {
+    fn try_from(signature: NodeSignature) -> Result<Self, Self::Error> {
         Ok(Self {
             signer: KeyIdentifier::from_str(&signature.signer)
                 .map_err(|_| NodeError::InvalidParameter("key identifier".to_owned()))?,
@@ -60,7 +60,7 @@ impl TryFrom<Signature> for BaseSignature {
 
 /// Signed content.
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Signed<T>
+pub struct NodeSigned<T>
 where
     T: Clone + Debug,
 {
@@ -68,10 +68,10 @@ where
     #[serde(flatten)]
     pub content: T,
     /// Signature
-    pub signature: Signature,
+    pub signature: NodeSignature,
 }
 
-impl<C, T> From<BaseSigned<C>> for Signed<T>
+impl<C, T> From<BaseSigned<C>> for NodeSigned<T>
 where
     C: BorshDeserialize + BorshSerialize + Clone + Debug,
     T: From<C> + Clone + Debug,
@@ -84,13 +84,13 @@ where
     }
 }
 
-impl<C, T> TryFrom<Signed<T>> for BaseSigned<C>
+impl<C, T> TryFrom<NodeSigned<T>> for BaseSigned<C>
 where
     C: BorshDeserialize + BorshSerialize + Clone + Debug,
     T: Into<C> + Clone + Debug,
 {
     type Error = NodeError;
-    fn try_from(signed: Signed<T>) -> Result<Self, Self::Error> {
+    fn try_from(signed: NodeSigned<T>) -> Result<Self, Self::Error> {
         Ok(Self {
             content: signed.content.into(),
             signature: signed.signature.try_into()?,
