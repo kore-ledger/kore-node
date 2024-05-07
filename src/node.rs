@@ -51,7 +51,6 @@ pub trait KoreNode {
 
 /// Kore node with LevelDB database.
 #[cfg(feature = "leveldb")]
-#[derive(Clone)]
 pub struct LevelDBNode {
     /// Kore API.
     api: KoreApi,
@@ -121,6 +120,7 @@ impl KoreNode for LevelDBNode {
         let cancellation_token = self.cancellation.clone();
         tokio::spawn(async move {
             shutdown_signal.await;
+            println!("-----Se recibe cancelación-----");
             log::info!("Shutdown signal received");
             cancellation_token.cancel();
         });
@@ -242,16 +242,12 @@ impl KoreNode for SqliteNode {
 pub mod tests {
 
     use super::*;
-    use tokio::signal;
 
     #[cfg(feature = "leveldb")]
     #[tokio::test]
     async fn test_leveldb_node() {
         let node = create_leveldb_node();
         assert!(node.is_ok());
-        let node = node.unwrap();
-        node.bind_with_shutdown(signal::ctrl_c());
-        node.run(|_| {}).await;
     }
 
     #[cfg(feature = "leveldb")]
@@ -264,6 +260,18 @@ pub mod tests {
         settings.keys_path = path.to_str().unwrap().to_owned();
         LevelDBNode::build(settings, &password)
     }
+
+    #[cfg(feature = "leveldb")]
+    pub fn export_leveldb_api() -> KoreApi {
+        use tokio::signal;
+
+        let node = create_leveldb_node();
+        assert!(node.is_ok());
+        let node = node.unwrap();
+        node.bind_with_shutdown(signal::ctrl_c());
+        node.api().clone()
+    }
+    
 
 
     #[cfg(feature = "sqlite")]
