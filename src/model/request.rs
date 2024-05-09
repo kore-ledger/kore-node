@@ -7,19 +7,14 @@
 use crate::error::NodeError;
 
 use kore_base::{
-    identifier::{Derivable, DigestIdentifier, KeyIdentifier},
-    request::{
+    identifier::{Derivable, DigestIdentifier, KeyIdentifier}, request::{
         EOLRequest as BaseEOLRequest, FactRequest as BaseFactRequest,
         KoreRequest as BaseKoreRequest, RequestState, StartRequest as BaseStartRequest,
         TransferRequest as BaseTransferRequest,
-    },
-    signature::Signed as BaseSigned,
-    ApprovalEntity as BaseApprovalEntity, ApprovalRequest as BaseApprovalRequest,
-    ApprovalResponse as BaseApprovalResponse, ApprovalState as BaseApprovalState,
-    EventRequest as BaseEventRequest, ValueWrapper,
+    }, signature::Signed as BaseSigned, ApprovalEntity as BaseApprovalEntity, ApprovalRequest as BaseApprovalRequest, ApprovalResponse as BaseApprovalResponse, ApprovalState as BaseApprovalState, EventRequest as BaseEventRequest, KeyDerivator, SubjectData, ValueWrapper
 };
 
-use std::{fmt::Debug, str::FromStr};
+use std::{collections::HashSet, fmt::Debug, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -320,11 +315,18 @@ impl From<BaseKoreRequest> for NodeKoreRequestState {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeGetApprovals {
     /// Status of approvals
     pub status: Option<String>,
+    /// Request for approval from which the query is made (being excluded)
+    pub from: Option<String>,
+    /// Number of entries
+    pub quantity: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Paginator {
     /// Request for approval from which the query is made (being excluded)
     pub from: Option<String>,
     /// Number of entries
@@ -402,12 +404,111 @@ impl From<BaseApprovalResponse> for NodeApprovalResponse {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "state")]
-pub enum PatchVote{
+pub enum PatchVote {
     /// Vote to accept a particular request
     RespondedAccepted,
     /// Vote to reject a particular request
     RespondedRejected,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PreauthorizedSubjectsResponse {
+    /// Subject identifier
+    pub subject_id: String, // DigestIdentifier
+    /// Providers acting on a specific subject
+    pub providers: Vec<String>,
+}
+
+impl From<(DigestIdentifier, HashSet<KeyIdentifier>)> for PreauthorizedSubjectsResponse {
+    fn from(value: (DigestIdentifier, HashSet<KeyIdentifier>)) -> Self {
+        Self {
+            subject_id: value.0.to_str(),
+            providers: value.1.into_iter().map(|i| i.to_str()).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AuthorizeSubject {
+    /// Providers acting on a specific subject
+    pub providers: Vec<String>,
+}
+
+pub struct NodeKeys {
+    pub algorithm: Option<KeyAlgorithms>,
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+pub enum KeyAlgorithms {
+    /// Ed25519 algorithm
+    Ed25519,
+    /// Secp256k1 algorithm
+    Secp256k1,
+}
+
+impl From<KeyAlgorithms> for KeyDerivator {
+    fn from(val: KeyAlgorithms) -> Self {
+        match val {
+            KeyAlgorithms::Ed25519 => KeyDerivator::Ed25519,
+            KeyAlgorithms::Secp256k1 => KeyDerivator::Secp256k1,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct NodeSubjects {
+    /// Subject from which the query is made (being excluded)
+    pub from: Option<String>,
+    /// Number of entries
+    pub quantity: Option<i64>,
+    /// Type of subject (governance, all)
+    pub subject_type: Option<String>,
+    /// Governance identifier
+    pub governanceid: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct NodeSubjectData {
+    /// Subject identifier
+    pub subject_id: String, // DigestIdentifier
+    /// Governance identifier
+    pub governance_id: String, // DigestIdentifier
+    /// Current sequence number of the subject
+    pub sn: u64,
+    /// Public key of the subject
+    pub public_key: String, // KeyIdentifier
+    /// Namespace of the subject
+    pub namespace: String,
+    /// The name of the subject.
+    pub name: String,
+    /// Identifier of the schema used by the subject and defined in associated governance
+    pub schema_id: String,
+    /// Subject owner identifier
+    pub owner: String, // KeyIdentifier
+    /// Subject creator identifier
+    pub creator: String, // KeyIdentifier
+    /// Current status of the subject
+    pub properties: Value,
+    /// Indicates if the subject is active or not
+    pub active: bool,
+}
+
+impl From<SubjectData> for NodeSubjectData {
+    fn from(value: SubjectData) -> Self {
+        Self {
+            subject_id: value.subject_id.to_str(),
+            governance_id: value.governance_id.to_str(),
+            sn: value.sn,
+            public_key: value.public_key.to_str(),
+            namespace: value.namespace,
+            schema_id: value.schema_id,
+            owner: value.owner.to_str(),
+            creator: value.creator.to_str(),
+            properties: value.properties.0,
+            active: value.active,
+            name: value.name,
+        }
+    }
 }

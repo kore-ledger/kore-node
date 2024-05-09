@@ -120,7 +120,6 @@ impl KoreNode for LevelDBNode {
         let cancellation_token = self.cancellation.clone();
         tokio::spawn(async move {
             shutdown_signal.await;
-            println!("-----Se recibe cancelación-----");
             log::info!("Shutdown signal received");
             cancellation_token.cancel();
         });
@@ -242,30 +241,40 @@ impl KoreNode for SqliteNode {
 pub mod tests {
 
     use super::*;
-
+    use kore_base::NetworkSettings;
+    use kore_base::ListenAddr;
+    
     #[cfg(feature = "leveldb")]
     #[tokio::test]
     async fn test_leveldb_node() {
-        let node = create_leveldb_node();
+        let node = create_leveldb_node(0, &[]);
         assert!(node.is_ok());
     }
 
     #[cfg(feature = "leveldb")]
-    pub fn create_leveldb_node() -> Result<LevelDBNode, NodeError> {
+    pub fn create_leveldb_node(node: u32, known_nodes: &[String]) -> Result<LevelDBNode, NodeError> {
+        use std::net::Ipv4Addr;
+
         let tempdir = tempfile::tempdir().unwrap();
-        let path = tempdir.path().join("keys");
-        let password = "password";
+        let path = tempdir.path().join(format!("keys{}", node));
+        let password = format!("password{}", node);
         let mut settings = KoreSettings::default();
+        settings.settings.network = NetworkSettings {
+            external_address: vec![],
+            known_nodes: known_nodes.to_vec(),
+            listen_addr: vec![ListenAddr::IP4 { addr: Some(Ipv4Addr::new(127, 0, 0, 1)), port: Some(50000 + node) }]
+        };
+
         settings.db = DbSettings::LevelDB(path.to_str().unwrap().to_owned());
         settings.keys_path = path.to_str().unwrap().to_owned();
         LevelDBNode::build(settings, &password)
     }
 
     #[cfg(feature = "leveldb")]
-    pub fn export_leveldb_api() -> KoreApi {
+    pub fn export_leveldb_api(node: u32, known_nodes: &[String]) -> KoreApi {
         use tokio::signal;
 
-        let node = create_leveldb_node();
+        let node = create_leveldb_node(node, known_nodes);
         assert!(node.is_ok());
         let node = node.unwrap();
         node.bind_with_shutdown(signal::ctrl_c());

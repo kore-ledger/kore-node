@@ -9,18 +9,19 @@
 use crate::{
     error::NodeError,
     model::{
-        EventRequestResponse, NodeApprovalEntity, NodeEventRequest, NodeGetApprovals,
-        NodeKoreRequestState, NodeSignedEventRequest, PatchVote,
+        AuthorizeSubject, EventRequestResponse, KeyAlgorithms, NodeApprovalEntity,
+        NodeEventRequest, NodeGetApprovals, NodeKeys, NodeKoreRequestState, NodeSignedEventRequest,
+        NodeSubjectData, NodeSubjects, Paginator, PatchVote, PreauthorizedSubjectsResponse,
     },
 };
 use kore_base::{
     crypto::KeyPair,
     signature::{Signature as BaseSignature, Signed as BaseSigned},
     Api, ApprovalState, Derivable, DigestDerivator, DigestIdentifier,
-    EventRequest as BaseEventRequest, KeyDerivator,
+    EventRequest as BaseEventRequest, KeyDerivator, KeyIdentifier,
 };
 
-use std::{convert::TryFrom, str::FromStr};
+use std::{collections::HashSet, convert::TryFrom, str::FromStr};
 
 /// Kore Node API.
 #[derive(Clone)]
@@ -201,10 +202,7 @@ impl KoreApi {
                 NodeError::InvalidParameter("approval request identifier".to_owned())
             })?)
             .await
-            .map_err(|e| {
-                println!("{:?}", e);
-                NodeError::InternalApi("Failed to get request".to_owned())
-            })?;
+            .map_err(|_| NodeError::InternalApi("Failed to get request".to_owned()))?;
         Ok(NodeApprovalEntity::from(result))
     }
 
@@ -234,6 +232,159 @@ impl KoreApi {
             )),
         }
     }
+
+    pub async fn get_all_allowed_subjects_and_providers(
+        &self,
+        parameters: Paginator,
+    ) -> Result<Vec<PreauthorizedSubjectsResponse>, NodeError> {
+        match self
+            .api
+            .get_all_allowed_subjects_and_providers(parameters.from, parameters.quantity)
+            .await
+            .map(|x| Vec::from_iter(x.into_iter().map(PreauthorizedSubjectsResponse::from)))
+        {
+            Ok(result) => Ok(result),
+            Err(_) => Err(NodeError::InternalApi(
+                "Failed to process request".to_owned(),
+            )),
+        }
+    }
+
+    pub async fn add_preauthorize_subject(
+        &self,
+        id: &str,
+        data: AuthorizeSubject,
+    ) -> Result<String, NodeError> {
+        let mut providers = HashSet::new();
+        for provider in data.providers.iter() {
+            let provider = match KeyIdentifier::from_str(provider) {
+                Ok(provider) => provider,
+                Err(_error) => {
+                    return Err(NodeError::InvalidParameter(format!(
+                        "Invalid key identifier {}",
+                        provider
+                    )))
+                }
+            };
+            providers.insert(provider);
+        }
+
+        match self
+            .api
+            .add_preauthorize_subject(
+                &DigestIdentifier::from_str(id).map_err(|_| {
+                    NodeError::InvalidParameter(format!("Invalid digest identifier {}", id))
+                })?,
+                &providers,
+            )
+            .await
+        {
+            Ok(_) => Ok("Ok".to_owned()),
+            Err(_) => Err(NodeError::InternalApi(
+                "Failed to process request".to_owned(),
+            )),
+        }
+    }
+
+    // Testear.
+    pub async fn generate_keys(&self, parameters: NodeKeys) -> Result<String, NodeError> {
+        let derivator = KeyDerivator::from(parameters.algorithm.unwrap_or(KeyAlgorithms::Ed25519));
+
+        match self.api.add_keys(derivator).await {
+            Ok(pub_key) => Ok(pub_key.to_str()),
+            Err(_) => Err(NodeError::InternalApi(
+                "Failed to process request".to_owned(),
+            )),
+        }
+    }
+
+    pub async fn get_subjects(
+        &self,
+        parameters: NodeSubjects,
+    ) -> Result<Vec<NodeSubjectData>, NodeError> {
+        enum SubjectType {
+            All,
+            Governances,
+        }
+        let subject_type = match &parameters.subject_type {
+            Some(data) => match data.to_lowercase().as_str() {
+                "all" => SubjectType::All,
+                "governances" => {
+                    if parameters.governanceid.is_some() {
+                        return Err(NodeError::InvalidParameter(
+                            "governanceid can not be specified with subject_type=governances"
+                                .to_string(),
+                        ));
+                    }
+                    SubjectType::Governances
+                }
+                other => {
+                    return Err(NodeError::InvalidParameter(format!(
+                        "unknow parameter {}",
+                        other
+                    )));
+                }
+            },
+            None => SubjectType::All,
+        };
+
+        let data = match subject_type {
+            SubjectType::All => {
+                if let Some(data) = &parameters.governanceid {
+                    self.api
+                        .get_subjects_by_governance(
+                            DigestIdentifier::from_str(data).map_err(|_| {
+                                NodeError::InvalidParameter("governanceid".to_owned())
+                            })?,
+                            parameters.from,
+                            parameters.quantity,
+                        )
+                        .await
+                } else {
+                    self.api
+                        .get_subjects("".into(), parameters.from, parameters.quantity)
+                        .await
+                }
+            }
+            SubjectType::Governances => {
+                self.api
+                    .get_governances("".into(), parameters.from, parameters.quantity)
+                    .await
+            }
+        }
+        .map(|s| {
+            s.into_iter()
+                .map(NodeSubjectData::from)
+                .collect::<Vec<NodeSubjectData>>()
+        });
+
+        match data {
+            Ok(data) => Ok(data),
+            Err(_) => Err(NodeError::InternalApi(
+                "Failed to process request".to_owned(),
+            )),
+        }
+    }
+
+    pub async fn get_subject(
+        &self,
+        id: &str,
+    ) -> Result<NodeSubjectData, NodeError> {
+        match self
+            .api
+            .get_subject(
+                DigestIdentifier::from_str(id)
+                    .map_err(|_| NodeError::InvalidParameter("invalid subject_id".to_owned()))?,
+            )
+            .await
+            .map(NodeSubjectData::from)
+        {
+            Ok(result) => Ok(result),
+            Err(_) => Err(NodeError::InternalApi(
+                "Failed to process request".to_owned(),
+            )),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -250,7 +401,7 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_send_get_event_request() {
-        let api = export_leveldb_api();
+        let api = export_leveldb_api(0, &[]);
 
         let res = api
             .send_event_request(NodeSignedEventRequest {
@@ -271,7 +422,7 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_approval_accept() {
-        let api = export_leveldb_api();
+        let api = export_leveldb_api(1, &[]);
         let res = api
             .send_event_request(NodeSignedEventRequest {
                 request: NodeEventRequest::Create(NodeStartRequest {
@@ -301,7 +452,6 @@ mod tests {
         }
 
         let gov_subject = status.subject_id.unwrap();
-        println!("subj: {}", gov_subject);
 
         let _ = api
             .send_event_request(NodeSignedEventRequest {
@@ -367,7 +517,7 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_approval_rejected() {
-        let api = export_leveldb_api();
+        let api = export_leveldb_api(2, &[]);
         let res = api
             .send_event_request(NodeSignedEventRequest {
                 request: NodeEventRequest::Create(NodeStartRequest {
@@ -397,7 +547,6 @@ mod tests {
         }
 
         let gov_subject = status.subject_id.unwrap();
-        println!("subj: {}", gov_subject);
 
         let _ = api
             .send_event_request(NodeSignedEventRequest {
@@ -458,5 +607,150 @@ mod tests {
             .await
             .unwrap();
         assert!(res_vec.is_empty());
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "leveldb")]
+    async fn test_leveldb_api_preauthorize_subject() {
+        use crate::model::{AuthorizeSubject, NodeSubjects, Paginator};
+
+        let api_node1 = export_leveldb_api(3, &[]);
+        let peer_id_node1 = api_node1.api.peer_id().to_string();
+
+        let api_node2 = export_leveldb_api(4, &[format!("/ip4/127.0.0.1/tcp/50003/p2p/{}", peer_id_node1)]);
+
+        let res = api_node1
+            .send_event_request(NodeSignedEventRequest {
+                request: NodeEventRequest::Create(NodeStartRequest {
+                    governance_id: "".to_owned(),
+                    schema_id: "governance".to_owned(),
+                    namespace: "agro.wine".to_owned(),
+                    name: "wine_track".to_owned(),
+                    public_key: None,
+                }),
+                signature: None,
+            })
+            .await
+            .unwrap();
+
+        let mut status;
+        loop {
+            status = api_node1
+                .get_event_request_state(&res.request_id)
+                .await
+                .unwrap();
+            match status.success {
+                Some(val) => {
+                    assert!(val);
+                    break;
+                }
+                None => {
+                    tokio::time::sleep(Duration::from_millis(300)).await;
+                }
+            }
+        }
+
+        let gov_subject = status.subject_id.unwrap();
+
+        let controller_id_node1 = api_node1.api.controller_id();
+        let controller_id_node2 = api_node2.api.controller_id();
+        let _ = api_node1
+            .send_event_request(NodeSignedEventRequest {
+                request: NodeEventRequest::Fact(NodeFactRequest {
+                    subject_id: gov_subject.clone(),
+                    payload: json!({
+                        "Patch": {
+                            "data": [
+                            {
+                                "op": "add",
+                                "path": "/members/0",
+                                "value": {
+                                "id": controller_id_node1,
+                                "name": "Node1"
+                                }
+                            },
+                            {
+                                "op": "add",
+                                "path": "/members/1",
+                                "value": {
+                                "id": controller_id_node2,
+                                "name": "Node2"
+                                }
+                            },
+                            {
+                                "op": "add",
+                                "path": "/roles/1",
+                                "value": {
+                                    "namespace": "",
+                                    "role": "WITNESS",
+                                    "schema": {
+                                        "ID": "governance"
+                                    },
+                                    "who": {
+                                        "NAME": "Node2"
+                                    }
+                                }
+                            },
+                        ]
+                        }
+                    }),
+                }),
+                signature: None,
+            })
+            .await
+            .unwrap();
+
+        let mut res_vec;
+        loop {
+            res_vec = api_node1
+                .get_approvals(NodeGetApprovals {
+                    status: Some("pending".to_owned()),
+                    from: None,
+                    quantity: None,
+                })
+                .await
+                .unwrap();
+            if res_vec.is_empty() {
+                tokio::time::sleep(Duration::from_millis(300)).await;
+            } else {
+                break;
+            }
+        }
+
+        assert_eq!(res_vec.len(), 1);
+        let res = api_node1
+            .approval_request(&res_vec[0].id, PatchVote::RespondedAccepted)
+            .await
+            .unwrap();
+        assert_eq!(res.state, BaseApprovalState::RespondedAccepted);
+        
+        let res = api_node2
+            .add_preauthorize_subject(&gov_subject, AuthorizeSubject { providers: vec![] })
+            .await
+            .unwrap();
+        assert_eq!(res, "Ok".to_owned());
+
+        let res = api_node2
+            .get_all_allowed_subjects_and_providers(Paginator {
+                from: None,
+                quantity: None,
+            })
+            .await
+            .unwrap();
+        assert_eq!(res[0].subject_id, gov_subject);
+        
+        let mut res_vec;
+        loop {
+            res_vec = api_node2.get_subjects(NodeSubjects {from: None, governanceid: None, subject_type: None, quantity: None}).await.unwrap();
+            if res_vec.is_empty() {
+                tokio::time::sleep(Duration::from_millis(300)).await;
+            } else {
+                break;
+            }
+        }
+        assert_eq!(res_vec[0].subject_id, gov_subject);
+
+        let res =  api_node2.get_subject(&gov_subject).await.unwrap();
+        assert_eq!(res.subject_id, res_vec[0].subject_id);
     }
 }
