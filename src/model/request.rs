@@ -7,11 +7,16 @@
 use crate::error::NodeError;
 
 use kore_base::{
-    identifier::{Derivable, DigestIdentifier, KeyIdentifier}, request::{
+    identifier::{Derivable, DigestIdentifier, KeyIdentifier},
+    request::{
         EOLRequest as BaseEOLRequest, FactRequest as BaseFactRequest,
         KoreRequest as BaseKoreRequest, RequestState, StartRequest as BaseStartRequest,
         TransferRequest as BaseTransferRequest,
-    }, signature::Signed as BaseSigned, ApprovalEntity as BaseApprovalEntity, ApprovalRequest as BaseApprovalRequest, ApprovalResponse as BaseApprovalResponse, ApprovalState as BaseApprovalState, EventRequest as BaseEventRequest, KeyDerivator, SubjectData, ValueWrapper
+    },
+    signature::{Signature, Signed as BaseSigned},
+    ApprovalEntity as BaseApprovalEntity, ApprovalRequest as BaseApprovalRequest,
+    ApprovalResponse as BaseApprovalResponse, ApprovalState as BaseApprovalState, Event,
+    EventRequest as BaseEventRequest, KeyDerivator, SubjectData, ValidationProof, ValueWrapper,
 };
 
 use std::{collections::HashSet, fmt::Debug, str::FromStr};
@@ -326,9 +331,17 @@ pub struct NodeGetApprovals {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Paginator {
+pub struct PaginatorFromString {
     /// Request for approval from which the query is made (being excluded)
     pub from: Option<String>,
+    /// Number of entries
+    pub quantity: Option<i64>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PaginatorFromNumber {
+    /// Event from which the query is made (being excluded)
+    pub from: Option<i64>,
     /// Number of entries
     pub quantity: Option<i64>,
 }
@@ -509,6 +522,118 @@ impl From<SubjectData> for NodeSubjectData {
             properties: value.properties.0,
             active: value.active,
             name: value.name,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NodeValidationProof {
+    /// Subject identifier
+    pub subject_id: String,
+    /// Subject schema json identifier
+    pub schema_id: String,
+    /// Namespace to which the subject belongs
+    pub namespace: String,
+    /// Name of subject
+    pub name: String,
+    /// Public key of the subject
+    pub subject_public_key: String,
+    /// Governance identifier
+    pub governance_id: String,
+    /// Governance version of the genesis event
+    pub genesis_governance_version: u64,
+    /// Current sequence number of the subject
+    pub sn: u64,
+    /// Previous event hash
+    pub prev_event_hash: String,
+    /// Hash of the event
+    pub event_hash: String,
+    /// Governance version
+    pub governance_version: u64,
+}
+
+impl From<ValidationProof> for NodeValidationProof {
+    fn from(value: ValidationProof) -> Self {
+        Self {
+            subject_id: value.subject_id.to_str(),
+            schema_id: value.schema_id,
+            namespace: value.namespace,
+            name: value.name,
+            subject_public_key: value.subject_public_key.to_str(),
+            governance_id: value.governance_id.to_str(),
+            genesis_governance_version: value.governance_version,
+            sn: value.sn,
+            prev_event_hash: value.prev_event_hash.to_str(),
+            event_hash: value.event_hash.to_str(),
+            governance_version: value.governance_version,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NodeProof {
+    /// Current validation proof
+    pub proof: NodeValidationProof,
+    /// Validators' signatures
+    pub signatures: Vec<NodeSignature>,
+}
+
+impl From<(HashSet<Signature>, ValidationProof)> for NodeProof {
+    fn from(value: (HashSet<Signature>, ValidationProof)) -> Self {
+        Self {
+            proof: NodeValidationProof::from(value.1),
+            signatures: value
+                .0
+                .into_iter()
+                .map(NodeSignature::from)
+                .collect::<Vec<NodeSignature>>(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EventContentResponse {
+    /// Subject identifier
+    pub subject_id: String,
+    /// Signature of the event request
+    pub event_request: NodeSigned<NodeEventRequest>,
+    /// The version of the governance contract.
+    pub gov_version: u64,
+    /// Current sequence number of the subject
+    pub sn: u64,
+    /// Changes to be applied to the subject
+    pub patch: Value,
+    /// Hash of the state
+    pub state_hash: String,
+    /// Value specifying if the evaluation process has gone well
+    pub eval_success: bool,
+    /// Value specifying if approval is required
+    pub appr_required: bool,
+    /// Value specifying if it has been approved
+    pub approved: bool,
+    /// Previous event hash
+    pub hash_prev_event: String,
+    /// Signatures of the evaluators
+    pub evaluators: Vec<NodeSignature>,
+    /// Signatures of the approvers
+    pub approvers: Vec<NodeSignature>,
+}
+
+impl From<Event> for EventContentResponse {
+    fn from(value: Event) -> Self {
+        Self {
+            subject_id: value.subject_id.to_str(),
+            event_request: NodeSigned::<NodeEventRequest>::from(value.event_request),
+            sn: value.sn,
+            patch: value.patch.0,
+            state_hash: value.state_hash.to_str(),
+            eval_success: value.eval_success,
+            appr_required: value.appr_required,
+            approved: value.approved,
+            hash_prev_event: value.hash_prev_event.to_str(),
+            evaluators: value.evaluators.into_iter().map(|s| s.into()).collect(),
+            approvers: value.approvers.into_iter().map(|s| s.into()).collect(),
+            gov_version: value.gov_version,
         }
     }
 }

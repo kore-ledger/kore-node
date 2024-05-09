@@ -9,9 +9,10 @@
 use crate::{
     error::NodeError,
     model::{
-        AuthorizeSubject, EventRequestResponse, KeyAlgorithms, NodeApprovalEntity,
-        NodeEventRequest, NodeGetApprovals, NodeKeys, NodeKoreRequestState, NodeSignedEventRequest,
-        NodeSubjectData, NodeSubjects, Paginator, PatchVote, PreauthorizedSubjectsResponse,
+        AuthorizeSubject, EventContentResponse, EventRequestResponse, KeyAlgorithms,
+        NodeApprovalEntity, NodeEventRequest, NodeGetApprovals, NodeKeys, NodeKoreRequestState,
+        NodeProof, NodeSigned, NodeSignedEventRequest, NodeSubjectData, NodeSubjects,
+        PaginatorFromNumber, PaginatorFromString, PatchVote, PreauthorizedSubjectsResponse,
     },
 };
 use kore_base::{
@@ -235,7 +236,7 @@ impl KoreApi {
 
     pub async fn get_all_allowed_subjects_and_providers(
         &self,
-        parameters: Paginator,
+        parameters: PaginatorFromString,
     ) -> Result<Vec<PreauthorizedSubjectsResponse>, NodeError> {
         match self
             .api
@@ -287,7 +288,7 @@ impl KoreApi {
     }
 
     // Testear.
-    pub async fn generate_keys(&self, parameters: NodeKeys) -> Result<String, NodeError> {
+    pub async fn generate_public_key(&self, parameters: NodeKeys) -> Result<String, NodeError> {
         let derivator = KeyDerivator::from(parameters.algorithm.unwrap_or(KeyAlgorithms::Ed25519));
 
         match self.api.add_keys(derivator).await {
@@ -366,10 +367,7 @@ impl KoreApi {
         }
     }
 
-    pub async fn get_subject(
-        &self,
-        id: &str,
-    ) -> Result<NodeSubjectData, NodeError> {
+    pub async fn get_subject(&self, id: &str) -> Result<NodeSubjectData, NodeError> {
         match self
             .api
             .get_subject(
@@ -385,44 +383,88 @@ impl KoreApi {
             )),
         }
     }
+
+    pub async fn get_validation_proof(&self, id: &str) -> Result<NodeProof, NodeError> {
+        match self
+            .api
+            .get_validation_proof(
+                DigestIdentifier::from_str(id)
+                    .map_err(|_| NodeError::InvalidParameter("invalid subject_id".to_owned()))?,
+            )
+            .await
+        {
+            Ok(value) => Ok(NodeProof::from(value)),
+            Err(_) => Err(NodeError::InternalApi(
+                "Failed to process request".to_owned(),
+            )),
+        }
+    }
+
+    pub async fn get_events_of_subject(
+        &self,
+        id: &str,
+        parameters: PaginatorFromNumber,
+    ) -> Result<Vec<NodeSigned<EventContentResponse>>, NodeError> {
+        let value = self
+            .api
+            .get_events(
+                DigestIdentifier::from_str(id)
+                    .map_err(|_| NodeError::InvalidParameter("invalid subject_id".to_owned()))?,
+                parameters.from,
+                parameters.quantity,
+            )
+            .await
+            .map(|vec| {
+                vec.into_iter()
+                    .map(NodeSigned::<EventContentResponse>::from)
+                    .collect::<Vec<NodeSigned<EventContentResponse>>>()
+            });
+        match value {
+            Ok(v) => Ok(v),
+            Err(_) => Err(NodeError::InternalApi(
+                "Failed to process request".to_owned(),
+            )),
+        }
+    }
+
+    pub async fn get_event_of_subject(
+        &self,
+        id: &str,
+        sn: u64,
+    ) -> Result<NodeSigned<EventContentResponse>, NodeError> {
+        let value = self
+            .api
+            .get_event(
+                DigestIdentifier::from_str(id)
+                    .map_err(|_| NodeError::InvalidParameter("invalid subject_id".to_owned()))?,
+                sn,
+            )
+            .await
+            .map(NodeSigned::<EventContentResponse>::from);
+        match value {
+            Ok(v) => Ok(v),
+            Err(_) => Err(NodeError::InternalApi(
+                "Failed to process request".to_owned(),
+            )),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::model::NodeFactRequest;
     #[cfg(feature = "leveldb")]
+    use crate::node::tests::export_leveldb_api;
+
+    use crate::model::NodeKeys;
+    use crate::model::{AuthorizeSubject, NodeFactRequest, NodeSubjects, PaginatorFromString};
     use crate::model::{NodeEventRequest, NodeSignedEventRequest, NodeStartRequest};
     use crate::model::{NodeGetApprovals, PatchVote};
-    use crate::node::tests::export_leveldb_api;
+    use crate::KoreApi;
     use kore_base::ApprovalState as BaseApprovalState;
-    use serde_json::json;
+    use serde_json::{json, Value};
     use std::time::Duration;
 
-    #[tokio::test]
-    #[cfg(feature = "leveldb")]
-    async fn test_leveldb_api_send_get_event_request() {
-        let api = export_leveldb_api(0, &[]);
-
-        let res = api
-            .send_event_request(NodeSignedEventRequest {
-                request: NodeEventRequest::Create(NodeStartRequest {
-                    governance_id: "".to_owned(),
-                    schema_id: "governance".to_owned(),
-                    namespace: "agro.wine".to_owned(),
-                    name: "wine_track".to_owned(),
-                    public_key: None,
-                }),
-                signature: None,
-            })
-            .await
-            .unwrap();
-        assert!(api.get_event_request(&res.request_id).await.is_ok());
-    }
-
-    #[tokio::test]
-    #[cfg(feature = "leveldb")]
-    async fn test_leveldb_api_approval_accept() {
-        let api = export_leveldb_api(1, &[]);
+    async fn create_governance(api: &KoreApi) -> String {
         let res = api
             .send_event_request(NodeSignedEventRequest {
                 request: NodeEventRequest::Create(NodeStartRequest {
@@ -450,27 +492,20 @@ mod tests {
                 }
             }
         }
+        status.subject_id.unwrap()
+    }
 
-        let gov_subject = status.subject_id.unwrap();
-
+    async fn create_approval_event_and_vote(
+        api: &KoreApi,
+        payload: Value,
+        subject: &str,
+        vote: PatchVote,
+    ) {
         let _ = api
             .send_event_request(NodeSignedEventRequest {
                 request: NodeEventRequest::Fact(NodeFactRequest {
-                    subject_id: gov_subject.clone(),
-                    payload: json!({
-                        "Patch": {
-                            "data": [
-                            {
-                                "op": "add",
-                                "path": "/members/0",
-                                "value": {
-                                "id": "EnyisBz0lX9sRvvV0H-BXTrVtARjUa0YDHzaxFHWH-N4",
-                                "name": "Test1"
-                                }
-                            }
-                        ]
-                        }
-                    }),
+                    subject_id: subject.to_owned(),
+                    payload,
                 }),
                 signature: None,
             })
@@ -498,10 +533,18 @@ mod tests {
         assert_eq!(res.id, res_vec[0].id);
 
         let res = api
-            .approval_request(&res_vec[0].id, PatchVote::RespondedAccepted)
+            .approval_request(&res_vec[0].id, vote.clone())
             .await
             .unwrap();
-        assert_eq!(res.state, BaseApprovalState::RespondedAccepted);
+
+        match vote {
+            PatchVote::RespondedAccepted => {
+                assert_eq!(res.state, BaseApprovalState::RespondedAccepted)
+            }
+            PatchVote::RespondedRejected => {
+                assert_eq!(res.state, BaseApprovalState::RespondedRejected)
+            }
+        };
 
         res_vec = api
             .get_approvals(NodeGetApprovals {
@@ -514,243 +557,198 @@ mod tests {
         assert!(res_vec.is_empty());
     }
 
-    #[tokio::test]
-    #[cfg(feature = "leveldb")]
-    async fn test_leveldb_api_approval_rejected() {
-        let api = export_leveldb_api(2, &[]);
-        let res = api
-            .send_event_request(NodeSignedEventRequest {
-                request: NodeEventRequest::Create(NodeStartRequest {
-                    governance_id: "".to_owned(),
-                    schema_id: "governance".to_owned(),
-                    namespace: "agro.wine".to_owned(),
-                    name: "wine_track".to_owned(),
-                    public_key: None,
-                }),
-                signature: None,
-            })
-            .await
-            .unwrap();
-
-        let mut status;
-        loop {
-            status = api.get_event_request_state(&res.request_id).await.unwrap();
-            match status.success {
-                Some(val) => {
-                    assert!(val);
-                    break;
-                }
-                None => {
-                    tokio::time::sleep(Duration::from_millis(300)).await;
-                }
-            }
-        }
-
-        let gov_subject = status.subject_id.unwrap();
-
-        let _ = api
-            .send_event_request(NodeSignedEventRequest {
-                request: NodeEventRequest::Fact(NodeFactRequest {
-                    subject_id: gov_subject.clone(),
-                    payload: json!({
-                        "Patch": {
-                            "data": [
-                            {
-                                "op": "add",
-                                "path": "/members/0",
-                                "value": {
-                                "id": "EnyisBz0lX9sRvvV0H-BXTrVtARjUa0YDHzaxFHWH-N4",
-                                "name": "Test1"
-                                }
-                            }
-                        ]
-                        }
-                    }),
-                }),
-                signature: None,
-            })
-            .await
-            .unwrap();
-
-        let mut res_vec;
-        loop {
-            res_vec = api
-                .get_approvals(NodeGetApprovals {
-                    status: Some("pending".to_owned()),
-                    from: None,
-                    quantity: None,
-                })
-                .await
-                .unwrap();
-            if res_vec.is_empty() {
-                tokio::time::sleep(Duration::from_millis(300)).await;
-            } else {
-                break;
-            }
-        }
-        assert_eq!(res_vec.len(), 1);
-        let res = api.get_approval_id(&res_vec[0].id).await.unwrap();
-        assert_eq!(res.id, res_vec[0].id);
-
-        let res = api
-            .approval_request(&res_vec[0].id, PatchVote::RespondedRejected)
-            .await
-            .unwrap();
-        assert_eq!(res.state, BaseApprovalState::RespondedRejected);
-
-        res_vec = api
-            .get_approvals(NodeGetApprovals {
-                status: Some("pending".to_owned()),
-                from: None,
-                quantity: None,
-            })
-            .await
-            .unwrap();
-        assert!(res_vec.is_empty());
-    }
-
-    #[tokio::test]
-    #[cfg(feature = "leveldb")]
-    async fn test_leveldb_api_preauthorize_subject() {
-        use crate::model::{AuthorizeSubject, NodeSubjects, Paginator};
-
-        let api_node1 = export_leveldb_api(3, &[]);
-        let peer_id_node1 = api_node1.api.peer_id().to_string();
-
-        let api_node2 = export_leveldb_api(4, &[format!("/ip4/127.0.0.1/tcp/50003/p2p/{}", peer_id_node1)]);
-
-        let res = api_node1
-            .send_event_request(NodeSignedEventRequest {
-                request: NodeEventRequest::Create(NodeStartRequest {
-                    governance_id: "".to_owned(),
-                    schema_id: "governance".to_owned(),
-                    namespace: "agro.wine".to_owned(),
-                    name: "wine_track".to_owned(),
-                    public_key: None,
-                }),
-                signature: None,
-            })
-            .await
-            .unwrap();
-
-        let mut status;
-        loop {
-            status = api_node1
-                .get_event_request_state(&res.request_id)
-                .await
-                .unwrap();
-            match status.success {
-                Some(val) => {
-                    assert!(val);
-                    break;
-                }
-                None => {
-                    tokio::time::sleep(Duration::from_millis(300)).await;
-                }
-            }
-        }
-
-        let gov_subject = status.subject_id.unwrap();
-
-        let controller_id_node1 = api_node1.api.controller_id();
-        let controller_id_node2 = api_node2.api.controller_id();
-        let _ = api_node1
-            .send_event_request(NodeSignedEventRequest {
-                request: NodeEventRequest::Fact(NodeFactRequest {
-                    subject_id: gov_subject.clone(),
-                    payload: json!({
-                        "Patch": {
-                            "data": [
-                            {
-                                "op": "add",
-                                "path": "/members/0",
-                                "value": {
-                                "id": controller_id_node1,
-                                "name": "Node1"
-                                }
-                            },
-                            {
-                                "op": "add",
-                                "path": "/members/1",
-                                "value": {
-                                "id": controller_id_node2,
-                                "name": "Node2"
-                                }
-                            },
-                            {
-                                "op": "add",
-                                "path": "/roles/1",
-                                "value": {
-                                    "namespace": "",
-                                    "role": "WITNESS",
-                                    "schema": {
-                                        "ID": "governance"
-                                    },
-                                    "who": {
-                                        "NAME": "Node2"
-                                    }
-                                }
-                            },
-                        ]
-                        }
-                    }),
-                }),
-                signature: None,
-            })
-            .await
-            .unwrap();
-
-        let mut res_vec;
-        loop {
-            res_vec = api_node1
-                .get_approvals(NodeGetApprovals {
-                    status: Some("pending".to_owned()),
-                    from: None,
-                    quantity: None,
-                })
-                .await
-                .unwrap();
-            if res_vec.is_empty() {
-                tokio::time::sleep(Duration::from_millis(300)).await;
-            } else {
-                break;
-            }
-        }
-
-        assert_eq!(res_vec.len(), 1);
-        let res = api_node1
-            .approval_request(&res_vec[0].id, PatchVote::RespondedAccepted)
-            .await
-            .unwrap();
-        assert_eq!(res.state, BaseApprovalState::RespondedAccepted);
-        
+    pub async fn preauthorized_and_ledger_copy(api_node2: &KoreApi, subject: &str) {
         let res = api_node2
-            .add_preauthorize_subject(&gov_subject, AuthorizeSubject { providers: vec![] })
+            .add_preauthorize_subject(subject, AuthorizeSubject { providers: vec![] })
             .await
             .unwrap();
         assert_eq!(res, "Ok".to_owned());
 
         let res = api_node2
-            .get_all_allowed_subjects_and_providers(Paginator {
+            .get_all_allowed_subjects_and_providers(PaginatorFromString {
                 from: None,
                 quantity: None,
             })
             .await
             .unwrap();
-        assert_eq!(res[0].subject_id, gov_subject);
-        
+        assert_eq!(res[0].subject_id, subject);
+
         let mut res_vec;
         loop {
-            res_vec = api_node2.get_subjects(NodeSubjects {from: None, governanceid: None, subject_type: None, quantity: None}).await.unwrap();
+            res_vec = api_node2
+                .get_subjects(NodeSubjects {
+                    from: None,
+                    governanceid: None,
+                    subject_type: None,
+                    quantity: None,
+                })
+                .await
+                .unwrap();
             if res_vec.is_empty() {
                 tokio::time::sleep(Duration::from_millis(300)).await;
             } else {
                 break;
             }
         }
-        assert_eq!(res_vec[0].subject_id, gov_subject);
+        assert_eq!(res_vec[0].subject_id, subject);
 
-        let res =  api_node2.get_subject(&gov_subject).await.unwrap();
+        let res = api_node2.get_subject(subject).await.unwrap();
         assert_eq!(res.subject_id, res_vec[0].subject_id);
     }
+
+    async fn api_approval_accept(api: &KoreApi) {
+        let gov_subject = create_governance(&api).await;
+        let payload = json!({
+            "Patch": {
+                "data": [
+                {
+                    "op": "add",
+                    "path": "/members/0",
+                    "value": {
+                    "id": "EnyisBz0lX9sRvvV0H-BXTrVtARjUa0YDHzaxFHWH-N4",
+                    "name": "Test1"
+                    }
+                }
+            ]
+            }
+        });
+        create_approval_event_and_vote(&api, payload, &gov_subject, PatchVote::RespondedAccepted)
+            .await;
+    }
+
+    async fn api_approval_rejected(api: &KoreApi) {
+        let gov_subject = create_governance(&api).await;
+        let payload = json!({
+            "Patch": {
+                "data": [
+                {
+                    "op": "add",
+                    "path": "/members/0",
+                    "value": {
+                    "id": "EnyisBz0lX9sRvvV0H-BXTrVtARjUa0YDHzaxFHWH-N4",
+                    "name": "Test1"
+                    }
+                }
+            ]
+            }
+        });
+        create_approval_event_and_vote(&api, payload, &gov_subject, PatchVote::RespondedRejected)
+            .await;
+    }
+
+    async fn api_preauthorize_subject(api_node1: &KoreApi, api_node2: &KoreApi) {
+        let controller_id_node1 = api_node1.api.controller_id();
+        let controller_id_node2 = api_node2.api.controller_id();
+
+        let gov_subject = create_governance(&api_node1).await;
+        let payload = json!({
+            "Patch": {
+                "data": [
+                {
+                    "op": "add",
+                    "path": "/members/0",
+                    "value": {
+                    "id": controller_id_node1,
+                    "name": "Node1"
+                    }
+                },
+                {
+                    "op": "add",
+                    "path": "/members/1",
+                    "value": {
+                    "id": controller_id_node2,
+                    "name": "Node2"
+                    }
+                },
+                {
+                    "op": "add",
+                    "path": "/roles/1",
+                    "value": {
+                        "namespace": "",
+                        "role": "WITNESS",
+                        "schema": {
+                            "ID": "governance"
+                        },
+                        "who": {
+                            "NAME": "Node2"
+                        }
+                    }
+                },
+            ]
+            }
+        });
+        create_approval_event_and_vote(
+            &api_node1,
+            payload,
+            &gov_subject,
+            PatchVote::RespondedAccepted,
+        )
+        .await;
+        preauthorized_and_ledger_copy(&api_node2, &gov_subject).await;
+    }
+
+    async fn api_public_key(api: &KoreApi) {
+        let pub_key = api
+            .generate_public_key(NodeKeys {
+                algorithm: Some(crate::model::KeyAlgorithms::Ed25519),
+            })
+            .await
+            .unwrap();
+
+        assert!(!pub_key.is_empty());
+    }
+
+    // LevelDB
+    #[tokio::test]
+    #[cfg(feature = "leveldb")]
+    async fn test_leveldb_api_send_get_event_request() {
+        let api = export_leveldb_api(101, &[]);
+
+        create_governance(&api).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "leveldb")]
+    async fn test_leveldb_api_approval_accept() {
+        let api = export_leveldb_api(102, &[]);
+
+        api_approval_accept(&api).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "leveldb")]
+    async fn test_leveldb_api_approval_rejected() {
+        let api = export_leveldb_api(103, &[]);
+        api_approval_rejected(&api).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "leveldb")]
+    async fn test_leveldb_api_preauthorize_subject() {
+        let api_node1 = export_leveldb_api(104, &[]);
+        let peer_id_node1 = api_node1.api.peer_id().to_string();
+
+        let api_node2 = export_leveldb_api(
+            105,
+            &[format!("/ip4/127.0.0.1/tcp/50104/p2p/{}", peer_id_node1)],
+        );
+        api_preauthorize_subject(&api_node1, &api_node2).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "leveldb")]
+    async fn test_leveldb_api_public_key() {
+        let api = export_leveldb_api(106, &[]);
+        api_public_key(&api).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "leveldb")]
+    async fn test_leveldb_api_events_subject() {
+
+    }
 }
+
+// get_pending_requests
+// get_single_request
+// get_governance_subjects

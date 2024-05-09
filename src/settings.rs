@@ -31,24 +31,19 @@ pub struct KoreSettings {
     pub keys_path: String,
 }
 
-#[cfg(feature = "sqlite")]
 impl Default for KoreSettings {
     fn default() -> Self {
-        Self {
+        #[cfg(feature = "sqlite")]
+        return Self {
             settings: BaseSettings::default(),
             db: DbSettings::Sqlite("examples/sqlitedb".to_owned()),
             keys_path: "examples/keys".to_owned(),
-        }
-    }
-}
-
-#[cfg(feature = "leveldb")]
-impl Default for KoreSettings {
-    fn default() -> Self {
-        Self {
+        };
+        #[cfg(feature = "leveldb")]
+        return Self {
             settings: BaseSettings::default(),
             db: DbSettings::LevelDB("examples/leveldb".to_owned()),
             keys_path: "examples/keys".to_owned(),
-        }
+        };
     }
 }
