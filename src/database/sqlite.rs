@@ -94,17 +94,16 @@ impl DatabaseCollection for SqliteCollection {
         let query = format!("SELECT value FROM {} WHERE id = ?1", &self.table);
         let row: Vec<u8> = conn
             .query_row(&query, params![key], |row| row.get(0))
-            .map_err(|_| Error::CustomError("query error".to_owned()))?;
+            .map_err(|_| Error::EntryNotFound)?;
 
         Ok(row)
     }
-
     fn put(&self, key: &str, data: &[u8]) -> Result<(), Error> {
         let conn = self
             .conn
             .lock()
             .map_err(|_| Error::CustomError("open connection".to_owned()))?;
-        let stmt = format!("INSERT INTO {} (id, value) VALUES (?1, ?2)", &self.table);
+        let stmt = format!("INSERT OR REPLACE INTO {} (id, value) VALUES (?1, ?2)", &self.table);
         conn.execute(&stmt, params![key, data])
             .map_err(|_| Error::CustomError("insert error".to_owned()))?;
         Ok(())

@@ -455,6 +455,9 @@ mod tests {
     #[cfg(feature = "leveldb")]
     use crate::node::tests::export_leveldb_api;
 
+    #[cfg(feature = "sqlite")]
+    use crate::node::tests::export_sqlite_api;
+
     use crate::model::NodeKeys;
     use crate::model::{AuthorizeSubject, NodeFactRequest, NodeSubjects, PaginatorFromString};
     use crate::model::{NodeEventRequest, NodeSignedEventRequest, NodeStartRequest};
@@ -744,11 +747,105 @@ mod tests {
 
     #[tokio::test]
     #[cfg(feature = "leveldb")]
-    async fn test_leveldb_api_events_subject() {
+    async fn test_leveldb_api_events_subject() {}
 
+    // sqlite
+    #[tokio::test]
+    #[cfg(feature = "sqlite")]
+    async fn test_sqlite_api_send_get_event_request() {
+        let api = export_sqlite_api(201, &[]);
+
+        create_governance(&api).await;
     }
+
+    #[tokio::test]
+    #[cfg(feature = "sqlite")]
+    async fn test_sqlite_api_approval_accept() {
+        let api = export_sqlite_api(202, &[]);
+
+        api_approval_accept(&api).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "sqlite")]
+    async fn test_sqlite_api_approval_rejected() {
+        let api = export_sqlite_api(203, &[]);
+        api_approval_rejected(&api).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "sqlite")]
+    async fn test_sqlite_api_preauthorize_subject() {
+        let api_node1 = export_sqlite_api(204, &[]);
+        let peer_id_node1 = api_node1.api.peer_id().to_string();
+
+        let api_node2 = export_sqlite_api(
+            205,
+            &[format!("/ip4/127.0.0.1/tcp/50204/p2p/{}", peer_id_node1)],
+        );
+        api_preauthorize_subject(&api_node1, &api_node2).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "sqlite")]
+    async fn test_sqlite_api_public_key() {
+        let api = export_sqlite_api(206, &[]);
+        api_public_key(&api).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "sqlite")]
+    async fn test_sqlite_api_events_subject() {}
 }
 
 // get_pending_requests
 // get_single_request
 // get_governance_subjects
+
+/*
+GET: controller_id controller_id
+PUT: controller_id controller_id
+PUT: keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw
+GET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+GET: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+GET ERROR EntryNotFound
+GET: keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw
+SET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+PUT: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+PUT: prevalidated_event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY prevalidated_event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+GET: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+GET: validation􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY validation􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+PUT: validation􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY validation􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET: keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw
+PUT: governance_index􏿿􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY governance_index􏿿􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+PUT: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET: signature􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000  signature􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000
+PUT: signature􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000  signature􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000
+PUT: event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000  event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000
+SET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+    PUT: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET: event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000  event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000
+GET: witness_signatures􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY witness_signatures􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+PUT: witness_signatures􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY witness_signatures􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
+GET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+GET: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
+
+GET: controller_id controller_id
+PUT: controller_id controller_id
+PUT: keys􏿿ER5YPH_8-iE7CPD1QPhfH_dJltrNG3d1W8lXlfizA4QI transfer
+GET_REQUEST: key kore_request􏿿JHCA5mRLM-cQJTyYqJSNkn2rQ52CBmSirpH0uQI8TWzA
+GET: kore_request􏿿JHCA5mRLM-cQJTyYqJSNkn2rQ52CBmSirpH0uQI8TWzA kore_request
+GET ERROR EntryNotFound
+GET: keys􏿿ER5YPH_8-iE7CPD1QPhfH_dJltrNG3d1W8lXlfizA4QI transfer
+ELOTRO: EventCreationError { source: SubjectKeysNotFound("ER5YPH_8-iE7CPD1QPhfH_dJltrNG3d1W8lXlfizA4QI") }
+thread 'api::tests::test_sqlite_api_approval_rejected' panicked at src/api.rs:485:14:
+called `Result::unwrap()` on an `Err` value: InternalApi("Failed to process request")
+*/

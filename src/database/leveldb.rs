@@ -149,7 +149,7 @@ impl DatabaseCollection for LeveldbCollection {
     fn del(&self, key: &str) -> Result<(), Error> {
         let key = self.generate_key(key);
         self.data.delete(self.get_write_options(), key)
-            .map_err(|error| Error::CustomError(format!("Error putting data: {}", error)))
+            .map_err(|error| Error::CustomError(format!("Error deletting data: {}", error)))
     }
 
     fn iter<'a>(

@@ -1,14 +1,10 @@
 // Copyright 2024 Antonio Estévez
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+#[cfg(feature = "leveldb")]
 use std::path::Path;
 
-use crate::{
-    error::NodeError,
-    settings::{DbSettings, KoreSettings},
-    KoreApi,
-    utils::node_key_pair,
-};
+use crate::{error::NodeError, settings::{DbSettings, KoreSettings}, utils::node_key_pair, KoreApi};
 
 #[cfg(feature = "leveldb")]
 use crate::database::leveldb::{LeveldbManager, open_db};
@@ -120,7 +116,7 @@ pub struct SqliteNode {
     /// Kore API.
     api: KoreApi,
     /// Cancellation token.
-    cancellation: CancellationToken,
+    pub cancellation: CancellationToken,
 }
 
 /// Implementation for `SqliteNode`.
@@ -154,7 +150,6 @@ impl SqliteNode {
             cancellation: CancellationToken::new(),
         })
     }
-
 }
 
 /// Implementation for `KoreNode` for `SqliteNode`.
@@ -242,7 +237,6 @@ pub mod tests {
 
     #[cfg(feature = "sqlite")]
     pub fn create_sqlite_node(node: u32, known_nodes: &[String]) -> Result<SqliteNode, NodeError> {
-        
         let tempdir = tempfile::tempdir().unwrap();
         let path = tempdir.path().join(format!("keys{}", node));
         let password = format!("password{}", node);
@@ -253,7 +247,7 @@ pub mod tests {
             listen_addr: vec![ListenAddr::IP4 { addr: Some(Ipv4Addr::new(127, 0, 0, 1)), port: Some(50000 + node) }]
         };
 
-        settings.db = DbSettings::Sqlite(path.to_str().unwrap().to_owned());
+        settings.db = DbSettings::Sqlite(format!("{}/database",path.to_str().unwrap().to_owned()));
         settings.keys_path = path.to_str().unwrap().to_owned();
         SqliteNode::build(settings, &password)
     }
