@@ -1,4 +1,4 @@
-// Copyright 2024 Antonio Estévez
+// Copyright 2024 Kore Ledger
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 //!
@@ -59,12 +59,16 @@ impl KoreApi {
     ///
     /// # Arguments
     ///
-    /// * `request` - Signed event request
+    /// * `request` - Signed event request.
     ///
     /// # Errors
     ///
-    /// * `NodeError::InternalApi` - Internal API error
+    /// * `NodeError::InternalApi` - Internal API error.
     /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `EventRequestResponse` - Id of request.
     ///
     pub async fn send_event_request(
         &self,
@@ -118,16 +122,16 @@ impl KoreApi {
     ///
     /// # Arguments
     ///
-    /// * `request_id` - Event request identifier
+    /// * `request_id` - Event request identifier.
     ///
     /// # Errors
     ///
-    /// * `NodeError::InternalApi` - Internal API error
+    /// * `NodeError::InternalApi` - Internal API error.
     /// * `NodeError::InvalidParameter` - Invalid request identifier.
     ///
     /// # Returns
     ///
-    /// * `SignedEventRequest` - Signed event request
+    /// * `NodeSignedEventRequest` - Signed event request.
     ///
     pub async fn get_event_request(
         &self,
@@ -144,6 +148,22 @@ impl KoreApi {
         Ok(NodeSignedEventRequest::from(result))
     }
 
+    /// Get an state of event request.
+    /// The state of request is retrieved from the Kore API.
+    ///
+    /// # Arguments
+    ///
+    /// * `request_id` - Event request identifier.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error
+    /// * `NodeError::InvalidParameter` - Invalid request identifier.
+    ///
+    /// # Returns
+    ///
+    /// * `NodeKoreRequestState` - State of event request.
+    ///
     pub async fn get_event_request_state(
         &self,
         request_id: &str,
@@ -159,6 +179,27 @@ impl KoreApi {
         Ok(NodeKoreRequestState::from(result))
     }
 
+    /// Get approval events.
+    /// Get the status of the approval events you want to obtain, among the 4 available:
+    /// - Pending: events pending voting.
+    /// - Obsolete: events to which the node has not taken any vote, but have become obsolete and can no longer take a vote.
+    /// - RespondedAccepted: Events to which the node has voted in favor.
+    /// - RespondedRejected: Events which the node has voted against.
+    /// The get that obtains the events is performed.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Parameters for retrieving approval events.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<NodeApprovalEntity>` - Vector of approval event.
+    ///
     pub async fn get_approvals(
         &self,
         params: NodeGetApprovals,
@@ -196,6 +237,22 @@ impl KoreApi {
         }
     }
 
+    /// Get approval event.
+    /// Gets an approval event from ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - ID of approval event.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `NodeApprovalEntity` - Approval event.
+    ///
     pub async fn get_approval_id(&self, id: &str) -> Result<NodeApprovalEntity, NodeError> {
         let result = self
             .api
@@ -207,6 +264,23 @@ impl KoreApi {
         Ok(NodeApprovalEntity::from(result))
     }
 
+    /// Voting of an approval event.
+    /// Accepts or denies an approval event.
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - ID of approval event.
+    /// * `response` - Event approval or denial.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `NodeApprovalEntity` - Approval event updated with user voting.
+    ///
     pub async fn approval_request(
         &self,
         id: &str,
@@ -234,6 +308,21 @@ impl KoreApi {
         }
     }
 
+    /// Get all allowed subjects and providers.
+    /// Obtain all subjects and suppliers that have been previously permitted.
+    ///
+    /// # Arguments
+    ///
+    /// * `parameters` - Parameters for retrieving allowed subjects and providers.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<PreauthorizedSubjectsResponse>` - Vector of allowed subjects and providers.
+    ///
     pub async fn get_all_allowed_subjects_and_providers(
         &self,
         parameters: PaginatorFromString,
@@ -251,9 +340,26 @@ impl KoreApi {
         }
     }
 
+    /// Preauthorize subject.
+    /// Preauthorize subject to receive a copy of the ledger.
+    ///
+    /// # Arguments
+    ///
+    /// * `subject_id` - ID of subject.
+    /// * `data` - Vec of providers.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `String` - 'Ok' if everything went well.
+    ///
     pub async fn add_preauthorize_subject(
         &self,
-        id: &str,
+        subject_id: &str,
         data: AuthorizeSubject,
     ) -> Result<String, NodeError> {
         let mut providers = HashSet::new();
@@ -273,8 +379,8 @@ impl KoreApi {
         match self
             .api
             .add_preauthorize_subject(
-                &DigestIdentifier::from_str(id).map_err(|_| {
-                    NodeError::InvalidParameter(format!("Invalid digest identifier {}", id))
+                &DigestIdentifier::from_str(subject_id).map_err(|_| {
+                    NodeError::InvalidParameter(format!("Invalid digest identifier {}", subject_id))
                 })?,
                 &providers,
             )
@@ -287,7 +393,21 @@ impl KoreApi {
         }
     }
 
-    // Testear.
+    /// Generate keys in node and return public key.
+    /// Generates a key pair on the node and returns the public key.
+    ///
+    /// # Arguments
+    ///
+    /// * `parameters` - Algorithm for generating cryptographic material.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    ///
+    /// # Returns
+    ///
+    /// * `String` - 'Ok' if everything went well.
+    ///
     pub async fn generate_public_key(&self, parameters: NodeKeys) -> Result<String, NodeError> {
         let derivator = KeyDerivator::from(parameters.algorithm.unwrap_or(KeyAlgorithms::Ed25519));
 
@@ -299,6 +419,25 @@ impl KoreApi {
         }
     }
 
+    /// Get subjects.
+    /// Depending on the parameters you can obtain:
+    /// - All the governances known to a node.
+    /// - All the traceability subjects of a governance.
+    /// - All traceability subjects of the node, including the governance and the subjects of the governance.
+    ///
+    /// # Arguments
+    ///
+    /// * `params` - Parameters for retrieving subjects.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<NodeSubjectData>` - Vector of subjects.
+    ///
     pub async fn get_subjects(
         &self,
         parameters: NodeSubjects,
@@ -367,11 +506,27 @@ impl KoreApi {
         }
     }
 
-    pub async fn get_subject(&self, id: &str) -> Result<NodeSubjectData, NodeError> {
+    /// Get subject.
+    /// Obtains the information of a traceability subject from its id.
+    ///
+    /// # Arguments
+    ///
+    /// * `subject_id` - Subject id.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `NodeSubjectData` - Subject of traceability.
+    ///
+    pub async fn get_subject(&self, subject_id: &str) -> Result<NodeSubjectData, NodeError> {
         match self
             .api
             .get_subject(
-                DigestIdentifier::from_str(id)
+                DigestIdentifier::from_str(subject_id)
                     .map_err(|_| NodeError::InvalidParameter("invalid subject_id".to_owned()))?,
             )
             .await
@@ -384,11 +539,27 @@ impl KoreApi {
         }
     }
 
-    pub async fn get_validation_proof(&self, id: &str) -> Result<NodeProof, NodeError> {
+    /// Get validation proof.
+    /// Allows to obtain the validation test of the last event for a specified subject.
+    ///
+    /// # Arguments
+    ///
+    /// * `subject_id` - Subject id.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `NodeProof` - Validation proof.
+    ///
+    pub async fn get_validation_proof(&self, subject_id: &str) -> Result<NodeProof, NodeError> {
         match self
             .api
             .get_validation_proof(
-                DigestIdentifier::from_str(id)
+                DigestIdentifier::from_str(subject_id)
                     .map_err(|_| NodeError::InvalidParameter("invalid subject_id".to_owned()))?,
             )
             .await
@@ -400,15 +571,32 @@ impl KoreApi {
         }
     }
 
+    /// Get events of subject.
+    /// Get events of traceability subject.
+    ///
+    /// # Arguments
+    ///
+    /// * `subject_id` - Subject id.
+    /// * `parameters` - Parameters for retrieving events of subject
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `Vec<NodeSigned<EventContentResponse>>` - Event vector of a traceability subject
+    ///
     pub async fn get_events_of_subject(
         &self,
-        id: &str,
+        subject_id: &str,
         parameters: PaginatorFromNumber,
     ) -> Result<Vec<NodeSigned<EventContentResponse>>, NodeError> {
         let value = self
             .api
             .get_events(
-                DigestIdentifier::from_str(id)
+                DigestIdentifier::from_str(subject_id)
                     .map_err(|_| NodeError::InvalidParameter("invalid subject_id".to_owned()))?,
                 parameters.from,
                 parameters.quantity,
@@ -427,15 +615,32 @@ impl KoreApi {
         }
     }
 
+    /// Get event of subject.
+    /// Get a specific event of traceability subject.
+    ///
+    /// # Arguments
+    ///
+    /// * `subject_id` - Subject id.
+    /// * `sn` - Versión of subject.
+    ///
+    /// # Errors
+    ///
+    /// * `NodeError::InternalApi` - Internal API error.
+    /// * `NodeError::InvalidParameter` - Invalid request parameter.
+    ///
+    /// # Returns
+    ///
+    /// * `NodeSigned<EventContentResponse>` - Event of a traceability subject
+    ///
     pub async fn get_event_of_subject(
         &self,
-        id: &str,
+        subject_id: &str,
         sn: u64,
     ) -> Result<NodeSigned<EventContentResponse>, NodeError> {
         let value = self
             .api
             .get_event(
-                DigestIdentifier::from_str(id)
+                DigestIdentifier::from_str(subject_id)
                     .map_err(|_| NodeError::InvalidParameter("invalid subject_id".to_owned()))?,
                 sn,
             )
@@ -458,15 +663,21 @@ mod tests {
     #[cfg(feature = "sqlite")]
     use crate::node::tests::export_sqlite_api;
 
-    use crate::model::NodeKeys;
     use crate::model::{AuthorizeSubject, NodeFactRequest, NodeSubjects, PaginatorFromString};
     use crate::model::{NodeEventRequest, NodeSignedEventRequest, NodeStartRequest};
     use crate::model::{NodeGetApprovals, PatchVote};
+    use crate::model::{NodeKeys, PaginatorFromNumber};
     use crate::KoreApi;
     use kore_base::ApprovalState as BaseApprovalState;
     use serde_json::{json, Value};
     use std::time::Duration;
+    use std::vec;
 
+    //////////////////////////////////////////////////////////////////////////////////////////
+    /// Basic methods
+    /// Methods that perform different actions that in combination achieve certain behaviors
+    //////////////////////////////////////////////////////////////////////////////////////////
+    /// Method that creates a governance and returns its identifier.
     async fn create_governance(api: &KoreApi) -> String {
         let res = api
             .send_event_request(NodeSignedEventRequest {
@@ -498,6 +709,7 @@ mod tests {
         status.subject_id.unwrap()
     }
 
+    /// Method that creates an approval event and performs the vote
     async fn create_approval_event_and_vote(
         api: &KoreApi,
         payload: Value,
@@ -560,6 +772,7 @@ mod tests {
         assert!(res_vec.is_empty());
     }
 
+    /// Method that approves a subject on a node and verifies that a copy of the ledger is created on the node.
     pub async fn preauthorized_and_ledger_copy(api_node2: &KoreApi, subject: &str) {
         let res = api_node2
             .add_preauthorize_subject(subject, AuthorizeSubject { providers: vec![] })
@@ -599,6 +812,45 @@ mod tests {
         assert_eq!(res.subject_id, res_vec[0].subject_id);
     }
 
+    /// method that for a given subject checks 'number' events
+    async fn check_event_events_of_subject(api: &KoreApi, gov_subject: &str, number: usize) {
+        let mut res_vec;
+        loop {
+            res_vec = api
+                .get_events_of_subject(
+                    &gov_subject,
+                    PaginatorFromNumber {
+                        from: None,
+                        quantity: None,
+                    },
+                )
+                .await
+                .unwrap();
+            if res_vec.len() < number {
+                tokio::time::sleep(Duration::from_millis(300)).await;
+            } else {
+                break;
+            }
+        }
+
+        for n in 0..number {
+            let res = api
+                .get_event_of_subject(&gov_subject, n.try_into().unwrap())
+                .await
+                .unwrap();
+            assert_eq!(res_vec[n].content.gov_version, res.content.gov_version);
+            assert_eq!(res_vec[n].content.patch, res.content.patch);
+            assert_eq!(
+                res_vec[n].content.hash_prev_event,
+                res.content.hash_prev_event
+            );
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////
+    /// Api aux methods
+    /// Methods that combine several basic methods to achieve certain behaviors
+    //////////////////////////////////////////////////////////////////////////////////////////
     async fn api_approval_accept(api: &KoreApi) {
         let gov_subject = create_governance(&api).await;
         let payload = json!({
@@ -701,7 +953,38 @@ mod tests {
         assert!(!pub_key.is_empty());
     }
 
-    // LevelDB
+    async fn api_check_event_events_of_subject(api: &KoreApi, number: usize) {
+        let gov_subject = create_governance(&api).await;
+        let payload = json!({
+            "Patch": {
+                "data": [
+                {
+                    "op": "add",
+                    "path": "/members/0",
+                    "value": {
+                    "id": "EnyisBz0lX9sRvvV0H-BXTrVtARjUa0YDHzaxFHWH-N4",
+                    "name": "Test1"
+                    }
+                }
+            ]
+            }
+        });
+
+        create_approval_event_and_vote(&api, payload, &gov_subject, PatchVote::RespondedAccepted)
+            .await;
+
+        check_event_events_of_subject(&api, &gov_subject, number).await;
+    }
+
+    async fn api_get_validation_proof(api: &KoreApi) {
+        let gov_subject = create_governance(&api).await;
+        let res = api.get_validation_proof(&gov_subject).await.unwrap();
+
+        assert_eq!(gov_subject, res.proof.subject_id);
+        assert_eq!(0, res.proof.sn);
+    }
+
+    /// LevelDB Tests
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_send_get_event_request() {
@@ -747,9 +1030,20 @@ mod tests {
 
     #[tokio::test]
     #[cfg(feature = "leveldb")]
-    async fn test_leveldb_api_events_subject() {}
+    async fn test_leveldb_api_events_subject() {
+        let api = export_leveldb_api(107, &[]);
+        api_check_event_events_of_subject(&api, 2).await;
+    }
 
-    // sqlite
+    #[tokio::test]
+    #[cfg(feature = "leveldb")]
+    async fn test_leveldb_api_validation_proof() {
+        let api = export_leveldb_api(108, &[]);
+        api_get_validation_proof(&api).await;
+    }
+
+
+    /// Sqlite Tests
     #[tokio::test]
     #[cfg(feature = "sqlite")]
     async fn test_sqlite_api_send_get_event_request() {
@@ -795,57 +1089,15 @@ mod tests {
 
     #[tokio::test]
     #[cfg(feature = "sqlite")]
-    async fn test_sqlite_api_events_subject() {}
+    async fn test_sqlite_api_events_subject() {
+        let api = export_sqlite_api(207, &[]);
+        api_check_event_events_of_subject(&api, 2).await;
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "sqlite")]
+    async fn test_sqlite_api_validation_proof() {
+        let api = export_sqlite_api(208, &[]);
+        api_get_validation_proof(&api).await;
+    }
 }
-
-// get_pending_requests
-// get_single_request
-// get_governance_subjects
-
-/*
-GET: controller_id controller_id
-PUT: controller_id controller_id
-PUT: keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw
-GET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-GET: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-GET ERROR EntryNotFound
-GET: keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw
-SET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-PUT: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-PUT: prevalidated_event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY prevalidated_event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-GET: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-GET: validation􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY validation􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-PUT: validation􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY validation􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET: keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw keys􏿿E5vSgznxGFnDdAg2iTx70SpoEeh0QF1_lEJmqyr1fEHw
-PUT: governance_index􏿿􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY governance_index􏿿􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-PUT: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET: signature􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000  signature􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000
-PUT: signature􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000  signature􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000
-PUT: event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000  event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000
-SET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-    PUT: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET: event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000  event􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY􏿿0000000000000000
-GET: witness_signatures􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY witness_signatures􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-PUT: witness_signatures􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY witness_signatures􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET: subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY subject􏿿J2nB4BBaJezCNRPH2d4dirLNVNBRw8BqWI7ANjyMc9zY
-GET_REQUEST: key kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-GET: kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE kore_request􏿿JzAves76cI_UQGKIOM8nPNOuAV80Qc7hTgkMmWg-2RvE
-
-GET: controller_id controller_id
-PUT: controller_id controller_id
-PUT: keys􏿿ER5YPH_8-iE7CPD1QPhfH_dJltrNG3d1W8lXlfizA4QI transfer
-GET_REQUEST: key kore_request􏿿JHCA5mRLM-cQJTyYqJSNkn2rQ52CBmSirpH0uQI8TWzA
-GET: kore_request􏿿JHCA5mRLM-cQJTyYqJSNkn2rQ52CBmSirpH0uQI8TWzA kore_request
-GET ERROR EntryNotFound
-GET: keys􏿿ER5YPH_8-iE7CPD1QPhfH_dJltrNG3d1W8lXlfizA4QI transfer
-ELOTRO: EventCreationError { source: SubjectKeysNotFound("ER5YPH_8-iE7CPD1QPhfH_dJltrNG3d1W8lXlfizA4QI") }
-thread 'api::tests::test_sqlite_api_approval_rejected' panicked at src/api.rs:485:14:
-called `Result::unwrap()` on an `Err` value: InternalApi("Failed to process request")
-*/

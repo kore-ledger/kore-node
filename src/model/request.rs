@@ -1,4 +1,4 @@
-// Copyright 2024 Antonio Estévez
+// Copyright 2024 Kore Ledger
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 //! # Event request.
@@ -294,6 +294,7 @@ impl TryFrom<NodeKoreRequest> for BaseKoreRequest {
     }
 }
 
+/// Kore request
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NodeKoreRequestState {
     /// Request identifier
@@ -319,6 +320,7 @@ impl From<BaseKoreRequest> for NodeKoreRequestState {
         }
     }
 }
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeGetApprovals {
@@ -450,6 +452,7 @@ pub struct AuthorizeSubject {
 }
 
 pub struct NodeKeys {
+    /// Algorith to generate keys pair
     pub algorithm: Option<KeyAlgorithms>,
 }
 

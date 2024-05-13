@@ -1,4 +1,4 @@
-// Copyright 2024 Antonio Estévez
+// Copyright 2024 Kore Ledger
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use kore_base::Settings as BaseSettings;
@@ -31,19 +31,25 @@ pub struct KoreSettings {
     pub keys_path: String,
 }
 
+#[cfg(feature = "sqlite")]
 impl Default for KoreSettings {
     fn default() -> Self {
-        #[cfg(feature = "sqlite")]
-        return Self {
+
+        Self {
             settings: BaseSettings::default(),
             db: DbSettings::Sqlite("examples/sqlitedb".to_owned()),
             keys_path: "examples/keys".to_owned(),
-        };
-        #[cfg(feature = "leveldb")]
-        return Self {
+        }
+    }
+}
+
+#[cfg(feature = "leveldb")]
+impl Default for KoreSettings {
+    fn default() -> Self {
+ Self {
             settings: BaseSettings::default(),
             db: DbSettings::LevelDB("examples/leveldb".to_owned()),
             keys_path: "examples/keys".to_owned(),
-        };
+        }
     }
 }
