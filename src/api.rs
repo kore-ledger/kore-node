@@ -16,7 +16,7 @@ use crate::{
     },
 };
 use kore_base::{
-    crypto::KeyPair,
+    keys::KeyPair,
     signature::{Signature as BaseSignature, Signed as BaseSigned},
     Api, ApprovalState, Derivable, DigestDerivator, DigestIdentifier,
     EventRequest as BaseEventRequest, KeyDerivator, KeyIdentifier,
@@ -943,7 +943,7 @@ mod tests {
     }
 
     async fn api_public_key(api: &KoreApi) {
-        let pub_key = api
+        let pub_key: String = api
             .generate_public_key(NodeKeys {
                 algorithm: Some(crate::model::KeyAlgorithms::Ed25519),
             })
@@ -988,7 +988,7 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_send_get_event_request() {
-        let api = export_leveldb_api(101, &[]);
+        let api = export_leveldb_api(101, vec![]);
 
         create_governance(&api).await;
     }
@@ -996,7 +996,7 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_approval_accept() {
-        let api = export_leveldb_api(102, &[]);
+        let api = export_leveldb_api(102, vec![]);
 
         api_approval_accept(&api).await;
     }
@@ -1004,19 +1004,24 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_approval_rejected() {
-        let api = export_leveldb_api(103, &[]);
+        let api = export_leveldb_api(103, vec![]);
         api_approval_rejected(&api).await;
     }
 
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_preauthorize_subject() {
-        let api_node1 = export_leveldb_api(104, &[]);
+        use kore_base::RoutingNode;
+
+        let api_node1 = export_leveldb_api(104, vec![]);
         let peer_id_node1 = api_node1.api.peer_id().to_string();
 
         let api_node2 = export_leveldb_api(
             105,
-            &[format!("/ip4/127.0.0.1/tcp/50104/p2p/{}", peer_id_node1)],
+            vec![RoutingNode {
+                address: "127.0.0.1:50104".to_owned(),
+                peer_id: peer_id_node1
+            }]
         );
         api_preauthorize_subject(&api_node1, &api_node2).await;
     }
@@ -1024,21 +1029,21 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_public_key() {
-        let api = export_leveldb_api(106, &[]);
+        let api = export_leveldb_api(106, vec![]);
         api_public_key(&api).await;
     }
 
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_events_subject() {
-        let api = export_leveldb_api(107, &[]);
+        let api = export_leveldb_api(107, vec![]);
         api_check_event_events_of_subject(&api, 2).await;
     }
 
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_validation_proof() {
-        let api = export_leveldb_api(108, &[]);
+        let api = export_leveldb_api(108, vec![]);
         api_get_validation_proof(&api).await;
     }
 
@@ -1047,7 +1052,7 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "sqlite")]
     async fn test_sqlite_api_send_get_event_request() {
-        let api = export_sqlite_api(201, &[]);
+        let api = export_sqlite_api(201, vec![]);
 
         create_governance(&api).await;
     }
@@ -1055,7 +1060,7 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "sqlite")]
     async fn test_sqlite_api_approval_accept() {
-        let api = export_sqlite_api(202, &[]);
+        let api = export_sqlite_api(202, vec![]);
 
         api_approval_accept(&api).await;
     }
@@ -1063,14 +1068,14 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "sqlite")]
     async fn test_sqlite_api_approval_rejected() {
-        let api = export_sqlite_api(203, &[]);
+        let api = export_sqlite_api(203, vec![]);
         api_approval_rejected(&api).await;
     }
 
     #[tokio::test]
     #[cfg(feature = "sqlite")]
     async fn test_sqlite_api_preauthorize_subject() {
-        let api_node1 = export_sqlite_api(204, &[]);
+        let api_node1 = export_sqlite_api(204, vec![]);
         let peer_id_node1 = api_node1.api.peer_id().to_string();
 
         let api_node2 = export_sqlite_api(
@@ -1083,21 +1088,21 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "sqlite")]
     async fn test_sqlite_api_public_key() {
-        let api = export_sqlite_api(206, &[]);
+        let api = export_sqlite_api(206, vec![]);
         api_public_key(&api).await;
     }
 
     #[tokio::test]
     #[cfg(feature = "sqlite")]
     async fn test_sqlite_api_events_subject() {
-        let api = export_sqlite_api(207, &[]);
+        let api = export_sqlite_api(207, vec![]);
         api_check_event_events_of_subject(&api, 2).await;
     }
 
     #[tokio::test]
     #[cfg(feature = "sqlite")]
     async fn test_sqlite_api_validation_proof() {
-        let api = export_sqlite_api(208, &[]);
+        let api = export_sqlite_api(208, vec![]);
         api_get_validation_proof(&api).await;
     }
 }

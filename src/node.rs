@@ -1,5 +1,6 @@
-// Copyright 2024 Antonio Estévez
+// Copyright 2024 Kore Ledger
 // SPDX-License-Identifier: AGPL-3.0-or-later
+use prometheus_client::registry::Registry;
 
 #[cfg(feature = "leveldb")]
 use std::path::Path;
@@ -64,8 +65,9 @@ impl LevelDBNode {
         let DbSettings::LevelDB(path) = settings.db;
         let db = open_db(Path::new(&path));
         let manager = LeveldbManager::new(db);
-        let (_, api) = Node::build(settings.settings.clone(), key_pair.clone(), manager)
-            .map_err(|_| NodeError::InternalApi("Node build error".to_owned()))?;
+        let mut registry = <Registry>::default();
+        let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager)
+            .map_err(|e| {NodeError::InternalApi("Node build error".to_owned())})?;
         let settings = settings.settings.node;
         Ok(Self {
             api: KoreApi::new(
@@ -187,38 +189,32 @@ impl KoreNode for SqliteNode {
 pub mod tests {
 
     use super::*;
-    use kore_base::NetworkSettings;
-    use kore_base::ListenAddr;
+    use kore_base::NetworkConfig;
+    use kore_base::NodeType;
+    use kore_base::RoutingNode;
     use tokio::signal;
-    use std::net::Ipv4Addr;
     
     #[cfg(feature = "leveldb")]
     #[tokio::test]
     async fn test_leveldb_node() {
-        let node = create_leveldb_node(100, &[]);
+        let node = create_leveldb_node(100, vec![]);
         assert!(node.is_ok());
     }
 
     #[cfg(feature = "leveldb")]
-    pub fn create_leveldb_node(node: u32, known_nodes: &[String]) -> Result<LevelDBNode, NodeError> {
-
+    pub fn create_leveldb_node(node: u32, boot_nodes: Vec<RoutingNode>) -> Result<LevelDBNode, NodeError> {
         let tempdir = tempfile::tempdir().unwrap();
         let path = tempdir.path().join(format!("keys{}", node));
         let password = format!("password{}", node);
         let mut settings = KoreSettings::default();
-        settings.settings.network = NetworkSettings {
-            external_address: vec![],
-            known_nodes: known_nodes.to_vec(),
-            listen_addr: vec![ListenAddr::IP4 { addr: Some(Ipv4Addr::new(127, 0, 0, 1)), port: Some(50000 + node) }]
-        };
-
+        settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes);
         settings.db = DbSettings::LevelDB(path.to_str().unwrap().to_owned());
         settings.keys_path = path.to_str().unwrap().to_owned();
         LevelDBNode::build(settings, &password)
     }
 
     #[cfg(feature = "leveldb")]
-    pub fn export_leveldb_api(node: u32, known_nodes: &[String]) -> KoreApi {
+    pub fn export_leveldb_api(node: u32, known_nodes: Vec<RoutingNode>) -> KoreApi {
         let node = create_leveldb_node(node, known_nodes);
         assert!(node.is_ok());
         let node = node.unwrap();

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use crate::{settings::KoreSettings,error::NodeError};
-use kore_base::{KeyDerivator, crypto::{Ed25519KeyPair, KeyGenerator, KeyMaterial, KeyPair, Secp256k1KeyPair, KeyPairType}};
+use kore_base::{KeyDerivator, keys::{Ed25519KeyPair, KeyGenerator, KeyMaterial, KeyPair, Secp256k1KeyPair, KeyPairType}};
 
 use pkcs8::{pkcs5, Document, EncryptedPrivateKeyInfo, PrivateKeyInfo};
 use hex_literal::hex;
@@ -114,7 +114,7 @@ mod tests {
     use super::*;
 
     use crate::settings::KoreSettings;
-    use kore_base::crypto::KeyMaterial;
+    use kore_base::keys::KeyMaterial;
     use std::fs;
 
 
