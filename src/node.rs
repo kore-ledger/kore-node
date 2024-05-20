@@ -67,7 +67,7 @@ impl LevelDBNode {
         let manager = LeveldbManager::new(db);
         let mut registry = <Registry>::default();
         let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager)
-            .map_err(|e| {NodeError::InternalApi("Node build error".to_owned())})?;
+            .map_err(|_| {NodeError::InternalApi("Node build error".to_owned())})?;
         let settings = settings.settings.node;
         Ok(Self {
             api: KoreApi::new(
@@ -139,7 +139,8 @@ impl SqliteNode {
         let key_pair = node_key_pair(&settings, password)?;
         let DbSettings::Sqlite(path) = settings.db;
         let manager = SqliteManager::new(&path);
-        let (_, api) = Node::build(settings.settings.clone(), key_pair.clone(), manager)
+        let mut registry = <Registry>::default();
+        let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager)
             .map_err(|_| NodeError::InternalApi("Node build error".to_owned()))?;
         let settings = settings.settings.node;
         Ok(Self {
@@ -227,21 +228,17 @@ pub mod tests {
     #[cfg(feature = "sqlite")]
     #[tokio::test]
     async fn test_sqlite_node() {
-        let node = create_sqlite_node(200, &[]);
+        let node = create_sqlite_node(200, vec![]);
         assert!(node.is_ok());
     }
 
     #[cfg(feature = "sqlite")]
-    pub fn create_sqlite_node(node: u32, known_nodes: &[String]) -> Result<SqliteNode, NodeError> {
+    pub fn create_sqlite_node(node: u32, boot_nodes: Vec<RoutingNode>) -> Result<SqliteNode, NodeError> {
         let tempdir = tempfile::tempdir().unwrap();
         let path = tempdir.path().join(format!("keys{}", node));
         let password = format!("password{}", node);
         let mut settings = KoreSettings::default();
-        settings.settings.network = NetworkSettings {
-            external_address: vec![],
-            known_nodes: known_nodes.to_vec(),
-            listen_addr: vec![ListenAddr::IP4 { addr: Some(Ipv4Addr::new(127, 0, 0, 1)), port: Some(50000 + node) }]
-        };
+        settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes);
 
         settings.db = DbSettings::Sqlite(format!("{}/database",path.to_str().unwrap().to_owned()));
         settings.keys_path = path.to_str().unwrap().to_owned();
@@ -249,8 +246,8 @@ pub mod tests {
     }
 
     #[cfg(feature = "sqlite")]
-    pub fn export_sqlite_api(node: u32, known_nodes: &[String]) -> KoreApi {
-        let node = create_sqlite_node(node, known_nodes);
+    pub fn export_sqlite_api(node: u32, boot_nodes: Vec<RoutingNode>) -> KoreApi {
+        let node = create_sqlite_node(node, boot_nodes);
         assert!(node.is_ok());
         let node = node.unwrap();
         node.bind_with_shutdown(signal::ctrl_c());

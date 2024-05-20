@@ -672,6 +672,7 @@ mod tests {
     use serde_json::{json, Value};
     use std::time::Duration;
     use std::vec;
+    use kore_base::RoutingNode;
 
     //////////////////////////////////////////////////////////////////////////////////////////
     /// Basic methods
@@ -1011,15 +1012,13 @@ mod tests {
     #[tokio::test]
     #[cfg(feature = "leveldb")]
     async fn test_leveldb_api_preauthorize_subject() {
-        use kore_base::RoutingNode;
-
         let api_node1 = export_leveldb_api(104, vec![]);
         let peer_id_node1 = api_node1.api.peer_id().to_string();
 
         let api_node2 = export_leveldb_api(
             105,
             vec![RoutingNode {
-                address: "127.0.0.1:50104".to_owned(),
+                address: "/ip4/127.0.0.1/tcp/50104".to_owned(),
                 peer_id: peer_id_node1
             }]
         );
@@ -1080,7 +1079,10 @@ mod tests {
 
         let api_node2 = export_sqlite_api(
             205,
-            &[format!("/ip4/127.0.0.1/tcp/50204/p2p/{}", peer_id_node1)],
+            vec![RoutingNode {
+                address: "/ip4/127.0.0.1/tcp/50204".to_owned(),
+                peer_id: peer_id_node1
+            }]
         );
         api_preauthorize_subject(&api_node1, &api_node2).await;
     }
