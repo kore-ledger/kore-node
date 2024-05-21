@@ -37,7 +37,7 @@ impl Default for KoreSettings {
 
         Self {
             settings: BaseSettings::default(),
-            db: DbSettings::Sqlite("examples/sqlitedb".to_owned()),
+            db: DbSettings::Sqlite("examples/sqlitedb/database".to_owned()),
             keys_path: "examples/keys".to_owned(),
         }
     }

@@ -6,6 +6,7 @@ mod database;
 pub mod error;
 pub mod model;
 pub mod node;
+pub mod config;
 mod settings;
 mod utils;
 
@@ -14,7 +15,3 @@ pub use api::KoreApi;
 pub use node::{LevelDBNode, KoreNode};
 #[cfg(feature = "sqlite")]
 pub use node::{SqliteNode, KoreNode};
-
-
-#[cfg(test)]
-mod tests {}
