@@ -1080,7 +1080,7 @@ mod tests {
         let api_node2 = export_sqlite_api(
             205,
             vec![RoutingNode {
-                address: "/ip4/127.0.0.1/tcp/50204".to_owned(),
+                address: vec!["/ip4/127.0.0.1/tcp/50204".to_owned()],
                 peer_id: peer_id_node1
             }]
         );
