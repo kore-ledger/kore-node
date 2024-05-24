@@ -500,12 +500,15 @@ mod tests {
     use kore_base::{NodeType, RoutingNode};
     use serial_test::serial;
 
-    use crate::{config::params::{
-        DigestDerivatorParams, KeyDerivatorParams, KoreParams, NetworkParams, NodeParams, Params, RoutingParams
-    }, settings::DbSettings};
+    use crate::{
+        config::params::{
+            DigestDerivatorParams, KeyDerivatorParams, KoreParams, NetworkParams, NodeParams,
+            Params, RoutingParams,
+        },
+        settings::DbSettings,
+    };
 
     use super::TellParams;
-
 
     #[test]
     #[serial]
@@ -565,20 +568,26 @@ mod tests {
         #[cfg(feature = "leveldb")]
         assert_eq!(kore.db_path, return DbSettings::LevelDB("examples/leveldb".to_owned()););
         #[cfg(feature = "sqlite")]
-        assert_eq!(kore.db_path, DbSettings::Sqlite("examples/sqlitedb/database".to_owned()));
+        assert_eq!(
+            kore.db_path,
+            DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
+        );
         assert_eq!(kore.keys_path, "examples/keys".to_owned());
     }
 
     #[test]
     #[serial]
     fn test_from_env_tell_values() {
-        std::env::set_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS", "55");
+        std::env::set_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS", "58");
         std::env::set_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS", "166");
 
         let tell = TellParams::from_env("KORE_NETWORK_");
 
-        assert_eq!(tell.message_timeout_secs, Duration::from_secs(55));
+        assert_eq!(tell.message_timeout_secs, Duration::from_secs(58));
         assert_eq!(tell.max_concurrent_streams, 166);
+
+        std::env::remove_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS");
+        std::env::remove_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS");
     }
 
     #[test]
@@ -640,6 +649,17 @@ mod tests {
                 "/kore/routing/1.1.1".to_owned()
             ]
         );
+
+        std::env::remove_var("KORE_NETWORK_ROUTING_BOOT_NODES");
+        std::env::remove_var("KORE_NETWORK_ROUTING_DHT_RANDOM_WALK");
+        std::env::remove_var("KORE_NETWORK_ROUTING_DISCOVERY_ONLY_IF_UNDER_NUM");
+        std::env::remove_var("KORE_NETWORK_ROUTING_ALLOW_NON_GLOBALS_IN_DHT");
+        std::env::remove_var("KORE_NETWORK_ROUTING_ALLOW_PRIVATE_IP");
+        std::env::remove_var("KORE_NETWORK_ROUTING_ENABLE_MDNS");
+        std::env::remove_var("KORE_NETWORK_ROUTING_KADEMLIA_DISJOINT_QUERY_PATHS");
+        std::env::remove_var("KORE_NETWORK_ROUTING_KADEMLIA_REPLICATION_FACTOR");
+        std::env::remove_var("KORE_NETWORK_ROUTING_PROTOCOL_NAMES");
+        std::env::remove_var("KORE_NETWORK_ROUTINGPORT_REUSE");
     }
 
     #[test]
@@ -660,9 +680,14 @@ mod tests {
         assert_eq!(node.timeout, 30);
         assert_eq!(node.passvotation, 50);
         assert_eq!(node.smartcontracts_directory, "./fake_route");
+
+        std::env::remove_var("KORE_NODE_KEY_DERIVATOR");
+        std::env::remove_var("KORE_NODE_DIGEST_DERIVATOR");
+        std::env::remove_var("KORE_NODE_REPLICATION_FACTOR");
+        std::env::remove_var("KORE_NODE_TIMEOUT");
+        std::env::remove_var("KORE_NODE_PASSVOTATION");
+        std::env::remove_var("KORE_NODE_SMARTCONTRACTS_DIRECTORY");
     }
-
-
 
     #[test]
     #[serial]
@@ -687,9 +712,11 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
             ]
         );
+        std::env::remove_var("KORE_NETWORK_PORT_REUSE");
+        std::env::remove_var("KORE_NETWORK_USER_AGENT");
+        std::env::remove_var("KORE_NETWORK_NODE_TYPE");
+        std::env::remove_var("KORE_NETWORK_LISTEN_ADDRESSES");
     }
-
-
 
     #[test]
     #[serial]
@@ -700,17 +727,25 @@ mod tests {
         let kore = KoreParams::from_env("KORE");
 
         #[cfg(feature = "leveldb")]
-        assert_eq!(kore.db_path, DbSettings::LevelDB("./fake/db/path".to_owned()));
+        assert_eq!(
+            kore.db_path,
+            DbSettings::LevelDB("./fake/db/path".to_owned())
+        );
         #[cfg(feature = "sqlite")]
-        assert_eq!(kore.db_path, DbSettings::Sqlite("./fake/db/path".to_owned()));
+        assert_eq!(
+            kore.db_path,
+            DbSettings::Sqlite("./fake/db/path".to_owned())
+        );
         assert_eq!(kore.keys_path, "./fake/keys/path".to_owned());
-    }
 
+        std::env::remove_var("KORE_DB_PATH");
+        std::env::remove_var("KORE_KEYS_PATH");
+    }
 
     #[test]
     #[serial]
     fn test_from_env_params_value() {
-        std::env::set_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS", "55");
+        std::env::set_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS", "58");
         std::env::set_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS", "166");
 
         std::env::set_var("KORE_NETWORK_ROUTING_BOOT_NODES", "/ip4/172.17.0.1/tcp/50000_/ip4/127.0.0.1/tcp/60001/p2p/12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B,/ip4/11.11.0.11/tcp/10000_/ip4/12.22.33.44/tcp/55511/p2p/12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze");
@@ -743,7 +778,6 @@ mod tests {
             "/ip4/127.0.0.1/tcp/50000,/ip4/127.0.0.1/tcp/50001,/ip4/127.0.0.1/tcp/50002",
         );
 
-
         let params = Params::from_env();
         let boot_nodes = vec![
             RoutingNode {
@@ -773,23 +807,44 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
             ]
         );
-        assert_eq!(params.kore.node.key_derivator, KeyDerivatorParams::Secp256k1);
-        assert_eq!(params.kore.node.digest_derivator, DigestDerivatorParams::Blake3_512);
+        assert_eq!(
+            params.kore.node.key_derivator,
+            KeyDerivatorParams::Secp256k1
+        );
+        assert_eq!(
+            params.kore.node.digest_derivator,
+            DigestDerivatorParams::Blake3_512
+        );
         assert_eq!(params.kore.node.replication_factor, 0.555f64);
         assert_eq!(params.kore.node.timeout, 30);
         assert_eq!(params.kore.node.passvotation, 50);
         assert_eq!(params.kore.node.smartcontracts_directory, "./fake_route");
-        assert_eq!(params.kore.network.routing.boot_nodes[0].peer_id, boot_nodes[0].peer_id);
-        assert_eq!(params.kore.network.routing.boot_nodes[0].address, boot_nodes[0].address);
-        assert_eq!(params.kore.network.routing.boot_nodes[1].peer_id, boot_nodes[1].peer_id);
-        assert_eq!(params.kore.network.routing.boot_nodes[1].address, boot_nodes[1].address);
+        assert_eq!(
+            params.kore.network.routing.boot_nodes[0].peer_id,
+            boot_nodes[0].peer_id
+        );
+        assert_eq!(
+            params.kore.network.routing.boot_nodes[0].address,
+            boot_nodes[0].address
+        );
+        assert_eq!(
+            params.kore.network.routing.boot_nodes[1].peer_id,
+            boot_nodes[1].peer_id
+        );
+        assert_eq!(
+            params.kore.network.routing.boot_nodes[1].address,
+            boot_nodes[1].address
+        );
 
         assert_eq!(params.kore.network.routing.dht_random_walk, false);
         assert_eq!(params.kore.network.routing.discovery_only_if_under_num, 55);
         assert_eq!(params.kore.network.routing.allow_non_globals_in_dht, true);
         assert_eq!(params.kore.network.routing.allow_private_ip, true);
         assert_eq!(params.kore.network.routing.enable_mdns, false);
-        assert_eq!(params.kore.network.routing.kademlia_disjoint_query_paths, false);
+        assert_eq!(
+            params.kore.network.routing.kademlia_disjoint_query_paths,
+            false
+        );
         assert_eq!(params.kore.network.routing.kademlia_replication_factor, 30);
         assert_eq!(
             params.kore.network.routing.protocol_names,
@@ -798,8 +853,35 @@ mod tests {
                 "/kore/routing/1.1.1".to_owned()
             ]
         );
-        assert_eq!(params.kore.network.tell.message_timeout_secs, Duration::from_secs(55));
+        assert_eq!(
+            params.kore.network.tell.message_timeout_secs,
+            Duration::from_secs(58)
+        );
         assert_eq!(params.kore.network.tell.max_concurrent_streams, 166);
-    }
 
+        std::env::remove_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS");
+        std::env::remove_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS");
+        std::env::remove_var("KORE_NETWORK_ROUTING_BOOT_NODES");
+        std::env::remove_var("KORE_NETWORK_ROUTING_DHT_RANDOM_WALK");
+        std::env::remove_var("KORE_NETWORK_ROUTING_DISCOVERY_ONLY_IF_UNDER_NUM");
+        std::env::remove_var("KORE_NETWORK_ROUTING_ALLOW_NON_GLOBALS_IN_DHT");
+        std::env::remove_var("KORE_NETWORK_ROUTING_ALLOW_PRIVATE_IP");
+        std::env::remove_var("KORE_NETWORK_ROUTING_ENABLE_MDNS");
+        std::env::remove_var("KORE_NETWORK_ROUTING_KADEMLIA_DISJOINT_QUERY_PATHS");
+        std::env::remove_var("KORE_NETWORK_ROUTING_KADEMLIA_REPLICATION_FACTOR");
+        std::env::remove_var("KORE_NETWORK_ROUTING_PROTOCOL_NAMES");
+        std::env::remove_var("KORE_NETWORK_ROUTINGPORT_REUSE");
+        std::env::remove_var("KORE_DB_PATH");
+        std::env::remove_var("KORE_KEYS_PATH");
+        std::env::remove_var("KORE_NETWORK_PORT_REUSE");
+        std::env::remove_var("KORE_NETWORK_USER_AGENT");
+        std::env::remove_var("KORE_NETWORK_NODE_TYPE");
+        std::env::remove_var("KORE_NETWORK_LISTEN_ADDRESSES");
+        std::env::remove_var("KORE_NODE_KEY_DERIVATOR");
+        std::env::remove_var("KORE_NODE_DIGEST_DERIVATOR");
+        std::env::remove_var("KORE_NODE_REPLICATION_FACTOR");
+        std::env::remove_var("KORE_NODE_TIMEOUT");
+        std::env::remove_var("KORE_NODE_PASSVOTATION");
+        std::env::remove_var("KORE_NODE_SMARTCONTRACTS_DIRECTORY");
+    }
 }
