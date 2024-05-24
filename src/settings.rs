@@ -6,7 +6,7 @@ use kore_base::Settings as BaseSettings;
 use serde::Deserialize;
 
 /// Database settings.
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq)]
 pub enum DbSettings {
     /// Configuration for a LevelDB database.
     #[cfg(feature = "leveldb")]

@@ -33,9 +33,11 @@ impl From<Params> for KoreSettings {
             .with_mdns(params.kore.network.routing.enable_mdns)
             .with_kademlia_disjoint_query_paths(
                 params.kore.network.routing.kademlia_disjoint_query_paths,
-            ).with_kademlia_replication_factor(
+            )
+            .with_kademlia_replication_factor(
                 params.kore.network.routing.kademlia_replication_factor,
-            ).set_all_protocols(params.kore.network.routing.protocol_names);
+            )
+            .set_all_protocols(params.kore.network.routing.protocol_names);
 
         Self {
             db: params.kore.db_path,
@@ -79,11 +81,28 @@ struct KoreParams {
 
 impl KoreParams {
     fn from_env(parent: &str) -> Self {
+        let mut config = config::Config::builder();
+        config = config.add_source(config::Environment::with_prefix(&parent));
+
+        let config = config
+            .build()
+            .map_err(|e| {
+                println!("Error building config: {}", e);
+            })
+            .unwrap();
+
+        let kore_params: KoreParams = config
+            .try_deserialize()
+            .map_err(|e| {
+                println!("Error try deserialize config: {}", e);
+            })
+            .unwrap();
+
         Self {
             network: NetworkParams::from_env(&format!("{parent}_")),
             node: NodeParams::from_env(&format!("{parent}_")),
-            db_path: todo!(),
-            keys_path: todo!(),
+            db_path: kore_params.db_path,
+            keys_path: kore_params.keys_path,
         }
     }
 }
@@ -143,13 +162,36 @@ struct NetworkParams {
 
 impl NetworkParams {
     fn from_env(parent: &str) -> Self {
+        let mut config = config::Config::builder();
+        config = config.add_source(
+            config::Environment::with_prefix(&format!("{parent}NETWORK"))
+                .list_separator(",")
+                .with_list_parse_key("listen_addresses")
+                .try_parsing(true),
+        );
+
+        let config = config
+            .build()
+            .map_err(|e| {
+                println!("Error building config: {}", e);
+            })
+            .unwrap();
+
+        let network: NetworkParams = config
+            .try_deserialize()
+            .map_err(|e| {
+                println!("Error try deserialize config: {}", e);
+            })
+            .unwrap();
+
+        let parent = &format!("{parent}NETWORK_");
         Self {
-            user_agent: todo!(),
-            node_type: todo!(),
-            listen_addresses: todo!(),
-            tell: TellParams::from_env(&format!("{parent}_NETWORK_")),
-            routing: RoutingParams::from_env(&format!("{parent}_NETWORK_")),
-            port_reuse: todo!(),
+            user_agent: network.user_agent,
+            node_type: network.node_type,
+            listen_addresses: network.listen_addresses,
+            tell: TellParams::from_env(parent),
+            routing: RoutingParams::from_env(parent),
+            port_reuse: network.port_reuse,
         }
     }
 }
@@ -251,15 +293,18 @@ struct RoutingParams {
     #[serde(default)]
     kademlia_replication_factor: usize,
     #[serde(default = "default_protocol_name")]
-    protocol_names: Vec<String>
+    protocol_names: Vec<String>,
 }
 
 impl RoutingParams {
     fn from_env(parent: &str) -> Self {
         let mut config = config::Config::builder();
-        config = config.add_source(config::Environment::with_prefix(&format!(
-            "{parent}ROUTING"
-        )).list_separator(",").with_list_parse_key("protocol_names").try_parsing(true));
+        config = config.add_source(
+            config::Environment::with_prefix(&format!("{parent}ROUTING"))
+                .list_separator(",")
+                .with_list_parse_key("protocol_names")
+                .try_parsing(true),
+        );
 
         let config = config
             .build()
@@ -296,9 +341,9 @@ impl Default for RoutingParams {
 fn deserialize_boot_nodes<'de, D>(deserializer: D) -> Result<Vec<RoutingNode>, D::Error>
 where
     D: Deserializer<'de>,
-{    
+{
     let s: String = String::deserialize(deserializer)?;
-    let v: Vec<&str>= s.split(',').collect();
+    let v: Vec<&str> = s.split(',').collect();
 
     Ok(v.into_iter()
         .map(|element| {
@@ -324,7 +369,6 @@ where
 fn default_true() -> bool {
     true
 }
-
 
 fn default_protocol_name() -> Vec<String> {
     vec!["/kore/routing/1.0.0".to_owned()]
@@ -352,14 +396,22 @@ struct NodeParams {
 
 impl NodeParams {
     fn from_env(parent: &str) -> Self {
-        NodeParams {
-            key_derivator: todo!(),
-            digest_derivator: todo!(),
-            replication_factor: todo!(),
-            timeout: todo!(),
-            passvotation: todo!(),
-            smartcontracts_directory: todo!(),
-        }
+        let mut config = config::Config::builder();
+        config = config.add_source(config::Environment::with_prefix(&format!("{parent}NODE")));
+
+        let config = config
+            .build()
+            .map_err(|e| {
+                println!("Error building config: {}", e);
+            })
+            .unwrap();
+
+        config
+            .try_deserialize()
+            .map_err(|e| {
+                println!("Error try deserialize config: {}", e);
+            })
+            .unwrap()
     }
 }
 
@@ -388,7 +440,7 @@ fn default_smartcontracts_directory() -> String {
     "./contracts".to_owned()
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 enum KeyDerivatorParams {
     /// The Ed25519 key derivator.
     Ed25519,
@@ -406,7 +458,7 @@ impl From<KeyDerivatorParams> for kore_base::KeyDerivator {
 }
 
 /// Key derivators availables
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, PartialEq)]
 pub enum DigestDerivatorParams {
     Blake3_256,
     Blake3_512,
@@ -445,13 +497,80 @@ impl Default for DigestDerivatorParams {
 mod tests {
     use std::time::Duration;
 
-    use kore_base::RoutingNode;
+    use kore_base::{NodeType, RoutingNode};
+    use serial_test::serial;
 
-    use crate::config::params::RoutingParams;
+    use crate::{config::params::{
+        DigestDerivatorParams, KeyDerivatorParams, KoreParams, NetworkParams, NodeParams, Params, RoutingParams
+    }, settings::DbSettings};
 
     use super::TellParams;
 
+
     #[test]
+    #[serial]
+    fn test_from_env_tell_default() {
+        let tell = TellParams::from_env("KORE_NETWORK_");
+
+        assert_eq!(tell.message_timeout_secs, Duration::from_secs(10));
+        assert_eq!(tell.max_concurrent_streams, 100);
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_routing_default() {
+        let routing = RoutingParams::from_env("KORE_NETWORK_");
+        println!("{:?}", routing.boot_nodes);
+        assert!(routing.boot_nodes.is_empty());
+
+        assert_eq!(routing.dht_random_walk, true);
+        assert_eq!(routing.discovery_only_if_under_num, std::u64::MAX);
+        assert_eq!(routing.allow_non_globals_in_dht, false);
+        assert_eq!(routing.allow_private_ip, false);
+        assert_eq!(routing.enable_mdns, true);
+        assert_eq!(routing.kademlia_disjoint_query_paths, true);
+        assert_eq!(routing.kademlia_replication_factor, 0);
+        assert_eq!(routing.protocol_names[0], "/kore/routing/1.0.0".to_owned());
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_node_default() {
+        let node: NodeParams = NodeParams::from_env("KORE_");
+
+        assert_eq!(node.key_derivator, KeyDerivatorParams::Ed25519);
+        assert_eq!(node.digest_derivator, DigestDerivatorParams::Blake3_256);
+        assert_eq!(node.replication_factor, 0.25f64);
+        assert_eq!(node.timeout, 3000u32);
+        assert_eq!(node.passvotation, 0);
+        assert_eq!(node.smartcontracts_directory, "./contracts");
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_network_default() {
+        let network = NetworkParams::from_env("KORE_");
+
+        assert_eq!(network.port_reuse, false);
+        assert_eq!(network.user_agent, "kore-node");
+        assert_eq!(network.node_type, NodeType::Bootstrap);
+        assert!(network.listen_addresses.is_empty());
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_kore_params_default() {
+        let kore = KoreParams::from_env("KORE");
+
+        #[cfg(feature = "leveldb")]
+        assert_eq!(kore.db_path, return DbSettings::LevelDB("examples/leveldb".to_owned()););
+        #[cfg(feature = "sqlite")]
+        assert_eq!(kore.db_path, DbSettings::Sqlite("examples/sqlitedb/database".to_owned()));
+        assert_eq!(kore.keys_path, "examples/keys".to_owned());
+    }
+
+    #[test]
+    #[serial]
     fn test_from_env_tell_values() {
         std::env::set_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS", "55");
         std::env::set_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS", "166");
@@ -463,14 +582,7 @@ mod tests {
     }
 
     #[test]
-    fn test_from_env_tell_default() {
-        let tell = TellParams::from_env("KORE_NETWORK_");
-
-        assert_eq!(tell.message_timeout_secs, Duration::from_secs(10));
-        assert_eq!(tell.max_concurrent_streams, 100);
-    }
-
-    #[test]
+    #[serial]
     fn test_from_env_routing_values() {
         std::env::set_var("KORE_NETWORK_ROUTING_BOOT_NODES", "/ip4/172.17.0.1/tcp/50000_/ip4/127.0.0.1/tcp/60001/p2p/12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B,/ip4/11.11.0.11/tcp/10000_/ip4/12.22.33.44/tcp/55511/p2p/12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze");
         std::env::set_var("KORE_NETWORK_ROUTING_DHT_RANDOM_WALK", "false");
@@ -485,31 +597,35 @@ mod tests {
         );
         std::env::set_var("KORE_NETWORK_ROUTING_KADEMLIA_REPLICATION_FACTOR", "30");
 
-        std::env::set_var("KORE_NETWORK_ROUTING_PROTOCOL_NAMES", "/kore/routing/2.2.2,/kore/routing/1.1.1");
+        std::env::set_var(
+            "KORE_NETWORK_ROUTING_PROTOCOL_NAMES",
+            "/kore/routing/2.2.2,/kore/routing/1.1.1",
+        );
         std::env::set_var("KORE_NETWORK_ROUTINGPORT_REUSE", "true");
 
         let routing = RoutingParams::from_env("KORE_NETWORK_");
-        let boot_nodes = vec![RoutingNode {
-            address: vec![
-                "/ip4/172.17.0.1/tcp/50000".to_owned(),
-                "/ip4/127.0.0.1/tcp/60001".to_owned(),
-            ],
-            peer_id: "12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B".to_owned(),
-        },
-        RoutingNode {
-            address: vec![
-                "/ip4/11.11.0.11/tcp/10000".to_owned(),
-                "/ip4/12.22.33.44/tcp/55511".to_owned(),
-            ],
-            peer_id: "12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze".to_owned(),
-        }
+        let boot_nodes = vec![
+            RoutingNode {
+                address: vec![
+                    "/ip4/172.17.0.1/tcp/50000".to_owned(),
+                    "/ip4/127.0.0.1/tcp/60001".to_owned(),
+                ],
+                peer_id: "12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B".to_owned(),
+            },
+            RoutingNode {
+                address: vec![
+                    "/ip4/11.11.0.11/tcp/10000".to_owned(),
+                    "/ip4/12.22.33.44/tcp/55511".to_owned(),
+                ],
+                peer_id: "12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze".to_owned(),
+            },
         ];
-        
+
         assert_eq!(routing.boot_nodes[0].peer_id, boot_nodes[0].peer_id);
         assert_eq!(routing.boot_nodes[0].address, boot_nodes[0].address);
         assert_eq!(routing.boot_nodes[1].peer_id, boot_nodes[1].peer_id);
         assert_eq!(routing.boot_nodes[1].address, boot_nodes[1].address);
-        
+
         assert_eq!(routing.dht_random_walk, false);
         assert_eq!(routing.discovery_only_if_under_num, 55);
         assert_eq!(routing.allow_non_globals_in_dht, true);
@@ -517,22 +633,173 @@ mod tests {
         assert_eq!(routing.enable_mdns, false);
         assert_eq!(routing.kademlia_disjoint_query_paths, false);
         assert_eq!(routing.kademlia_replication_factor, 30);
-        assert_eq!(routing.protocol_names, vec!["/kore/routing/2.2.2".to_owned(), "/kore/routing/1.1.1".to_owned()]);
-
+        assert_eq!(
+            routing.protocol_names,
+            vec![
+                "/kore/routing/2.2.2".to_owned(),
+                "/kore/routing/1.1.1".to_owned()
+            ]
+        );
     }
 
     #[test]
-    fn test_from_env_routing_default() {
-        let routing = RoutingParams::from_env("KORE_NETWORK_");
-        assert!(routing.boot_nodes.is_empty());
-        
-        assert_eq!(routing.dht_random_walk, true);
-        assert_eq!(routing.discovery_only_if_under_num, std::u64::MAX);
-        assert_eq!(routing.allow_non_globals_in_dht, false);
-        assert_eq!(routing.allow_private_ip, false);
-        assert_eq!(routing.enable_mdns, true);
-        assert_eq!(routing.kademlia_disjoint_query_paths, true);
-        assert_eq!(routing.kademlia_replication_factor, 0);
-        assert_eq!(routing.protocol_names[0], "/kore/routing/1.0.0".to_owned());
+    #[serial]
+    fn test_from_env_node_values() {
+        std::env::set_var("KORE_NODE_KEY_DERIVATOR", "Secp256k1");
+        std::env::set_var("KORE_NODE_DIGEST_DERIVATOR", "Blake3_512");
+        std::env::set_var("KORE_NODE_REPLICATION_FACTOR", "0.555");
+        std::env::set_var("KORE_NODE_TIMEOUT", "30");
+        std::env::set_var("KORE_NODE_PASSVOTATION", "50");
+        std::env::set_var("KORE_NODE_SMARTCONTRACTS_DIRECTORY", "./fake_route");
+
+        let node = NodeParams::from_env("KORE_");
+
+        assert_eq!(node.key_derivator, KeyDerivatorParams::Secp256k1);
+        assert_eq!(node.digest_derivator, DigestDerivatorParams::Blake3_512);
+        assert_eq!(node.replication_factor, 0.555f64);
+        assert_eq!(node.timeout, 30);
+        assert_eq!(node.passvotation, 50);
+        assert_eq!(node.smartcontracts_directory, "./fake_route");
     }
+
+
+
+    #[test]
+    #[serial]
+    fn test_from_env_network_values() {
+        std::env::set_var("KORE_NETWORK_PORT_REUSE", "true");
+        std::env::set_var("KORE_NETWORK_USER_AGENT", "Kore2.0");
+        std::env::set_var("KORE_NETWORK_NODE_TYPE", "Addressable");
+        std::env::set_var(
+            "KORE_NETWORK_LISTEN_ADDRESSES",
+            "/ip4/127.0.0.1/tcp/50000,/ip4/127.0.0.1/tcp/50001,/ip4/127.0.0.1/tcp/50002",
+        );
+        let network = NetworkParams::from_env("KORE_");
+
+        assert_eq!(network.port_reuse, true);
+        assert_eq!(network.user_agent, "Kore2.0");
+        assert_eq!(network.node_type, NodeType::Addressable);
+        assert_eq!(
+            network.listen_addresses,
+            vec![
+                "/ip4/127.0.0.1/tcp/50000".to_owned(),
+                "/ip4/127.0.0.1/tcp/50001".to_owned(),
+                "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+    }
+
+
+
+    #[test]
+    #[serial]
+    fn test_from_env_kore_params_value() {
+        std::env::set_var("KORE_DB_PATH", "./fake/db/path");
+        std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
+
+        let kore = KoreParams::from_env("KORE");
+
+        #[cfg(feature = "leveldb")]
+        assert_eq!(kore.db_path, DbSettings::LevelDB("./fake/db/path".to_owned()));
+        #[cfg(feature = "sqlite")]
+        assert_eq!(kore.db_path, DbSettings::Sqlite("./fake/db/path".to_owned()));
+        assert_eq!(kore.keys_path, "./fake/keys/path".to_owned());
+    }
+
+
+    #[test]
+    #[serial]
+    fn test_from_env_params_value() {
+        std::env::set_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS", "55");
+        std::env::set_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS", "166");
+
+        std::env::set_var("KORE_NETWORK_ROUTING_BOOT_NODES", "/ip4/172.17.0.1/tcp/50000_/ip4/127.0.0.1/tcp/60001/p2p/12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B,/ip4/11.11.0.11/tcp/10000_/ip4/12.22.33.44/tcp/55511/p2p/12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze");
+        std::env::set_var("KORE_NETWORK_ROUTING_DHT_RANDOM_WALK", "false");
+        std::env::set_var("KORE_NETWORK_ROUTING_DISCOVERY_ONLY_IF_UNDER_NUM", "55");
+        std::env::set_var("KORE_NETWORK_ROUTING_ALLOW_NON_GLOBALS_IN_DHT", "true");
+        std::env::set_var("KORE_NETWORK_ROUTING_ALLOW_PRIVATE_IP", "true");
+        std::env::set_var("KORE_NETWORK_ROUTING_ENABLE_MDNS", "false");
+        std::env::set_var(
+            "KORE_NETWORK_ROUTING_KADEMLIA_DISJOINT_QUERY_PATHS",
+            "false",
+        );
+        std::env::set_var("KORE_NETWORK_ROUTING_KADEMLIA_REPLICATION_FACTOR", "30");
+        std::env::set_var(
+            "KORE_NETWORK_ROUTING_PROTOCOL_NAMES",
+            "/kore/routing/2.2.2,/kore/routing/1.1.1",
+        );
+        std::env::set_var("KORE_NETWORK_ROUTINGPORT_REUSE", "true");
+        std::env::set_var("KORE_NODE_KEY_DERIVATOR", "Secp256k1");
+        std::env::set_var("KORE_NODE_DIGEST_DERIVATOR", "Blake3_512");
+        std::env::set_var("KORE_NODE_REPLICATION_FACTOR", "0.555");
+        std::env::set_var("KORE_NODE_TIMEOUT", "30");
+        std::env::set_var("KORE_NODE_PASSVOTATION", "50");
+        std::env::set_var("KORE_NODE_SMARTCONTRACTS_DIRECTORY", "./fake_route");
+        std::env::set_var("KORE_NETWORK_PORT_REUSE", "true");
+        std::env::set_var("KORE_NETWORK_USER_AGENT", "Kore2.0");
+        std::env::set_var("KORE_NETWORK_NODE_TYPE", "Addressable");
+        std::env::set_var(
+            "KORE_NETWORK_LISTEN_ADDRESSES",
+            "/ip4/127.0.0.1/tcp/50000,/ip4/127.0.0.1/tcp/50001,/ip4/127.0.0.1/tcp/50002",
+        );
+
+
+        let params = Params::from_env();
+        let boot_nodes = vec![
+            RoutingNode {
+                address: vec![
+                    "/ip4/172.17.0.1/tcp/50000".to_owned(),
+                    "/ip4/127.0.0.1/tcp/60001".to_owned(),
+                ],
+                peer_id: "12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B".to_owned(),
+            },
+            RoutingNode {
+                address: vec![
+                    "/ip4/11.11.0.11/tcp/10000".to_owned(),
+                    "/ip4/12.22.33.44/tcp/55511".to_owned(),
+                ],
+                peer_id: "12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze".to_owned(),
+            },
+        ];
+
+        assert_eq!(params.kore.network.port_reuse, true);
+        assert_eq!(params.kore.network.user_agent, "Kore2.0");
+        assert_eq!(params.kore.network.node_type, NodeType::Addressable);
+        assert_eq!(
+            params.kore.network.listen_addresses,
+            vec![
+                "/ip4/127.0.0.1/tcp/50000".to_owned(),
+                "/ip4/127.0.0.1/tcp/50001".to_owned(),
+                "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+        assert_eq!(params.kore.node.key_derivator, KeyDerivatorParams::Secp256k1);
+        assert_eq!(params.kore.node.digest_derivator, DigestDerivatorParams::Blake3_512);
+        assert_eq!(params.kore.node.replication_factor, 0.555f64);
+        assert_eq!(params.kore.node.timeout, 30);
+        assert_eq!(params.kore.node.passvotation, 50);
+        assert_eq!(params.kore.node.smartcontracts_directory, "./fake_route");
+        assert_eq!(params.kore.network.routing.boot_nodes[0].peer_id, boot_nodes[0].peer_id);
+        assert_eq!(params.kore.network.routing.boot_nodes[0].address, boot_nodes[0].address);
+        assert_eq!(params.kore.network.routing.boot_nodes[1].peer_id, boot_nodes[1].peer_id);
+        assert_eq!(params.kore.network.routing.boot_nodes[1].address, boot_nodes[1].address);
+
+        assert_eq!(params.kore.network.routing.dht_random_walk, false);
+        assert_eq!(params.kore.network.routing.discovery_only_if_under_num, 55);
+        assert_eq!(params.kore.network.routing.allow_non_globals_in_dht, true);
+        assert_eq!(params.kore.network.routing.allow_private_ip, true);
+        assert_eq!(params.kore.network.routing.enable_mdns, false);
+        assert_eq!(params.kore.network.routing.kademlia_disjoint_query_paths, false);
+        assert_eq!(params.kore.network.routing.kademlia_replication_factor, 30);
+        assert_eq!(
+            params.kore.network.routing.protocol_names,
+            vec![
+                "/kore/routing/2.2.2".to_owned(),
+                "/kore/routing/1.1.1".to_owned()
+            ]
+        );
+        assert_eq!(params.kore.network.tell.message_timeout_secs, Duration::from_secs(55));
+        assert_eq!(params.kore.network.tell.max_concurrent_streams, 166);
+    }
+
 }

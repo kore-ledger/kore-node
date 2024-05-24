@@ -43,7 +43,7 @@ pub fn build_config(env: bool, json: &str, yaml: &str, toml: &str) -> KoreSettin
 #[cfg(test)]
 mod tests {
     use super::build_config;
-    fn create_file(name: &str, route: &str, data: &str) {}
+//    fn create_file(name: &str, route: &str, data: &str) {}
 
     #[test]
     fn test_env() {
