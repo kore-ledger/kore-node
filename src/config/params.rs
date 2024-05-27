@@ -383,6 +383,7 @@ impl RoutingParams {
             config::Environment::with_prefix(&format!("{parent}ROUTING"))
                 .list_separator(",")
                 .with_list_parse_key("protocol_names")
+                .with_list_parse_key("boot_nodes")
                 .try_parsing(true),
         );
 
@@ -483,8 +484,7 @@ fn deserialize_boot_nodes<'de, D>(deserializer: D) -> Result<Vec<RoutingNode>, D
 where
     D: Deserializer<'de>,
 {
-    let s: String = String::deserialize(deserializer)?;
-    let v: Vec<&str> = s.split(',').collect();
+    let v: Vec<String> = Vec::deserialize(deserializer)?;
 
     Ok(v.into_iter()
         .map(|element| {
@@ -971,6 +971,8 @@ mod tests {
             "KORE_NETWORK_LISTEN_ADDRESSES",
             "/ip4/127.0.0.1/tcp/50000,/ip4/127.0.0.1/tcp/50001,/ip4/127.0.0.1/tcp/50002",
         );
+        std::env::set_var("KORE_DB_PATH", "./fake/db/path");
+        std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
 
         let params = Params::from_env();
         let boot_nodes = vec![
@@ -1052,6 +1054,19 @@ mod tests {
             Duration::from_secs(58)
         );
         assert_eq!(params.kore.network.tell.max_concurrent_streams, 166);
+
+
+        #[cfg(feature = "leveldb")]
+        assert_eq!(
+            params.kore.db_path,
+            DbSettings::LevelDB("./fake/db/path".to_owned())
+        );
+        #[cfg(feature = "sqlite")]
+        assert_eq!(
+            params.kore.db_path,
+            DbSettings::Sqlite("./fake/db/path".to_owned())
+        );
+        assert_eq!(params.kore.keys_path, "./fake/keys/path".to_owned());
 
         std::env::remove_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS");
         std::env::remove_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS");
