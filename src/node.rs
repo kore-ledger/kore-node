@@ -208,7 +208,7 @@ pub mod tests {
         let path = tempdir.path().join(format!("keys{}", node));
         let password = format!("password{}", node);
         let mut settings = KoreSettings::default();
-        settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes);
+        settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes, false);
         settings.db = DbSettings::LevelDB(path.to_str().unwrap().to_owned());
         settings.keys_path = path.to_str().unwrap().to_owned();
         LevelDBNode::build(settings, &password)

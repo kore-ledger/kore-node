@@ -16,6 +16,12 @@ impl Params {
             kore: KoreParams::from_env("KORE"),
         }
     }
+
+    pub fn mix_config(&self, other_config: Params) -> Self {
+        Self {
+            kore: self.kore.mix_config(other_config.kore),
+        }
+    }
 }
 
 impl From<Params> for KoreSettings {
@@ -82,7 +88,7 @@ struct KoreParams {
 impl KoreParams {
     fn from_env(parent: &str) -> Self {
         let mut config = config::Config::builder();
-        config = config.add_source(config::Environment::with_prefix(&parent));
+        config = config.add_source(config::Environment::with_prefix(parent));
 
         let config = config
             .build()
@@ -103,6 +109,25 @@ impl KoreParams {
             node: NodeParams::from_env(&format!("{parent}_")),
             db_path: kore_params.db_path,
             keys_path: kore_params.keys_path,
+        }
+    }
+
+    fn mix_config(&self, other_config: KoreParams) -> Self {
+        let keys_path = if other_config.keys_path != default_keys_path() {
+            other_config.keys_path
+        } else {
+            self.keys_path.clone()
+        };
+        let db_path = if other_config.db_path != default_db_path() {
+            other_config.db_path
+        } else {
+            self.db_path.clone()
+        };
+        Self {
+            network: self.network.mix_config(other_config.network),
+            node: self.node.mix_config(other_config.node),
+            db_path,
+            keys_path,
         }
     }
 }
@@ -194,6 +219,41 @@ impl NetworkParams {
             port_reuse: network.port_reuse,
         }
     }
+
+    fn mix_config(&self, other_config: NetworkParams) -> Self {
+        let user_agent = if other_config.user_agent != default_user_agent() {
+            other_config.user_agent
+        } else {
+            self.user_agent.clone()
+        };
+
+        let node_type = if other_config.node_type != default_node_type() {
+            other_config.node_type
+        } else {
+            self.node_type.clone()
+        };
+
+        let listen_addresses = if !other_config.listen_addresses.is_empty() {
+            other_config.listen_addresses
+        } else {
+            self.listen_addresses.clone()
+        };
+
+        let port_reuse = if other_config.port_reuse {
+            other_config.port_reuse
+        } else {
+            self.port_reuse
+        };
+
+        Self {
+            user_agent,
+            node_type,
+            listen_addresses,
+            tell: self.tell.mix_config(other_config.tell),
+            routing: self.routing.mix_config(other_config.routing),
+            port_reuse,
+        }
+    }
 }
 
 fn default_user_agent() -> String {
@@ -246,6 +306,26 @@ impl TellParams {
                 println!("Error try deserialize config: {}", e);
             })
             .unwrap()
+    }
+
+    fn mix_config(&self, other_config: TellParams) -> Self {
+        let message_timeout_secs =
+            if other_config.message_timeout_secs != default_message_timeout_secs() {
+                other_config.message_timeout_secs
+            } else {
+                self.message_timeout_secs
+            };
+
+        let max_concurrent_streams =
+            if other_config.max_concurrent_streams != default_max_concurrent_streams() {
+                other_config.max_concurrent_streams
+            } else {
+                self.max_concurrent_streams
+            };
+        Self {
+            message_timeout_secs,
+            max_concurrent_streams,
+        }
     }
 }
 
@@ -319,6 +399,67 @@ impl RoutingParams {
                 println!("Error try deserialize config: {}", e);
             })
             .unwrap()
+    }
+
+    fn mix_config(&self, other_config: RoutingParams) -> Self {
+        let boot_nodes = if !other_config.boot_nodes.is_empty() {
+            other_config.boot_nodes
+        } else {
+            self.boot_nodes.clone()
+        };
+        let dht_random_walk = if !other_config.dht_random_walk {
+            other_config.dht_random_walk
+        } else {
+            self.dht_random_walk
+        };
+        let discovery_only_if_under_num =
+            if other_config.discovery_only_if_under_num != default_discovery_only_if_under_num() {
+                other_config.discovery_only_if_under_num
+            } else {
+                self.discovery_only_if_under_num
+            };
+        let allow_non_globals_in_dht = if other_config.allow_non_globals_in_dht {
+            other_config.allow_non_globals_in_dht
+        } else {
+            self.allow_non_globals_in_dht
+        };
+        let allow_private_ip = if other_config.allow_private_ip {
+            other_config.allow_private_ip
+        } else {
+            self.allow_private_ip
+        };
+        let enable_mdns = if !other_config.enable_mdns {
+            other_config.enable_mdns
+        } else {
+            self.enable_mdns
+        };
+        let kademlia_disjoint_query_paths = if !other_config.kademlia_disjoint_query_paths {
+            other_config.kademlia_disjoint_query_paths
+        } else {
+            self.kademlia_disjoint_query_paths
+        };
+        let kademlia_replication_factor = if other_config.kademlia_replication_factor != 0 {
+            other_config.kademlia_replication_factor
+        } else {
+            self.kademlia_replication_factor
+        };
+        let protocol_names = if other_config.protocol_names != default_protocol_name() {
+            other_config.protocol_names
+        } else {
+            self.protocol_names.clone()
+        };
+
+        Self {
+            boot_nodes,
+            dht_random_walk,
+            discovery_only_if_under_num,
+            allow_non_globals_in_dht,
+            allow_private_ip,
+            enable_mdns,
+            kademlia_disjoint_query_paths,
+            kademlia_replication_factor,
+            protocol_names,
+        }
     }
 }
 
@@ -413,6 +554,56 @@ impl NodeParams {
             })
             .unwrap()
     }
+
+    fn mix_config(&self, other_config: NodeParams) -> Self {
+        let key_derivator = if other_config.key_derivator != KeyDerivatorParams::default() {
+            other_config.key_derivator
+        } else {
+            self.key_derivator.clone()
+        };
+
+        let digest_derivator = if other_config.digest_derivator != DigestDerivatorParams::default()
+        {
+            other_config.digest_derivator
+        } else {
+            self.digest_derivator.clone()
+        };
+
+        let replication_factor = if other_config.replication_factor != default_replication_factor()
+        {
+            other_config.replication_factor
+        } else {
+            self.replication_factor
+        };
+
+        let timeout = if other_config.timeout != default_timeout() {
+            other_config.timeout
+        } else {
+            self.timeout
+        };
+
+        let passvotation = if other_config.passvotation != 0 {
+            other_config.passvotation
+        } else {
+            self.passvotation
+        };
+
+        let smartcontracts_directory =
+            if other_config.smartcontracts_directory != default_smartcontracts_directory() {
+                other_config.smartcontracts_directory
+            } else {
+                self.smartcontracts_directory.clone()
+            };
+
+        Self {
+            key_derivator,
+            digest_derivator,
+            replication_factor,
+            timeout,
+            passvotation,
+            smartcontracts_directory,
+        }
+    }
 }
 
 impl Default for NodeParams {
@@ -440,7 +631,7 @@ fn default_smartcontracts_directory() -> String {
     "./contracts".to_owned()
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 enum KeyDerivatorParams {
     /// The Ed25519 key derivator.
     Ed25519,
@@ -458,7 +649,7 @@ impl From<KeyDerivatorParams> for kore_base::KeyDerivator {
 }
 
 /// Key derivators availables
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub enum DigestDerivatorParams {
     Blake3_256,
     Blake3_512,
@@ -566,7 +757,10 @@ mod tests {
         let kore = KoreParams::from_env("KORE");
 
         #[cfg(feature = "leveldb")]
-        assert_eq!(kore.db_path, return DbSettings::LevelDB("examples/leveldb".to_owned()););
+        assert_eq!(
+            kore.db_path,
+            DbSettings::LevelDB("examples/leveldb".to_owned())
+        );
         #[cfg(feature = "sqlite")]
         assert_eq!(
             kore.db_path,
