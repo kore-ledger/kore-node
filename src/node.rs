@@ -5,7 +5,7 @@ use prometheus_client::registry::Registry;
 #[cfg(feature = "leveldb")]
 use std::path::Path;
 
-use crate::{error::NodeError, settings::{DbSettings, KoreSettings}, utils::node_key_pair, KoreApi};
+use crate::{error::NodeError, prometheus::server::run_prometheus, settings::{DbSettings, KoreSettings}, utils::node_key_pair, KoreApi};
 
 #[cfg(feature = "leveldb")]
 use crate::database::leveldb::{LeveldbManager, open_db};
@@ -65,10 +65,16 @@ impl LevelDBNode {
         let DbSettings::LevelDB(path) = settings.db;
         let db = open_db(Path::new(&path));
         let manager = LeveldbManager::new(db);
+        
         let mut registry = <Registry>::default();
+
         let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager)
             .map_err(|_| {NodeError::InternalApi("Node build error".to_owned())})?;
         let settings = settings.settings.node;
+        
+        #[cfg(feature = "prometheus")]
+        run_prometheus(registry);
+    
         Ok(Self {
             api: KoreApi::new(
                 api,
@@ -139,10 +145,16 @@ impl SqliteNode {
         let key_pair = node_key_pair(&settings, password)?;
         let DbSettings::Sqlite(path) = settings.db;
         let manager = SqliteManager::new(&path);
+        
         let mut registry = <Registry>::default();
+
         let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager)
             .map_err(|_| NodeError::InternalApi("Node build error".to_owned()))?;
         let settings = settings.settings.node;
+
+        #[cfg(feature = "prometheus")]
+        run_prometheus(registry);
+
         Ok(Self {
             api: KoreApi::new(
                 api,

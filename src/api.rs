@@ -669,10 +669,10 @@ mod tests {
     use crate::model::{NodeKeys, PaginatorFromNumber};
     use crate::KoreApi;
     use kore_base::ApprovalState as BaseApprovalState;
+    use kore_base::RoutingNode;
     use serde_json::{json, Value};
     use std::time::Duration;
     use std::vec;
-    use kore_base::RoutingNode;
 
     //////////////////////////////////////////////////////////////////////////////////////////
     /// Basic methods
@@ -709,31 +709,30 @@ mod tests {
         }
         status.subject_id.unwrap()
     }
-/*
-    async fn fact_event(api: &KoreApi, subj: &str, payload: Value) {
-        let res = api
-            .send_event_request(NodeSignedEventRequest {
-                request: NodeEventRequest::Fact(NodeFactRequest { subject_id: subj.to_owned(), payload} ),
-                signature: None,
-            })
-            .await
-            .unwrap();
-        let mut status;
-        loop {
-            status = api.get_event_request_state(&res.request_id).await.unwrap();
-            match status.success {
-                Some(val) => {
-                    assert!(val);
-                    break;
-                }
-                None => {
-                    tokio::time::sleep(Duration::from_millis(300)).await;
+    /*
+        async fn fact_event(api: &KoreApi, subj: &str, payload: Value) {
+            let res = api
+                .send_event_request(NodeSignedEventRequest {
+                    request: NodeEventRequest::Fact(NodeFactRequest { subject_id: subj.to_owned(), payload} ),
+                    signature: None,
+                })
+                .await
+                .unwrap();
+            let mut status;
+            loop {
+                status = api.get_event_request_state(&res.request_id).await.unwrap();
+                match status.success {
+                    Some(val) => {
+                        assert!(val);
+                        break;
+                    }
+                    None => {
+                        tokio::time::sleep(Duration::from_millis(300)).await;
+                    }
                 }
             }
         }
-    }
-*/
-
+    */
 
     /// Method that creates an approval event and performs the vote
     async fn create_approval_event_and_vote(
@@ -968,150 +967,6 @@ mod tests {
         preauthorized_and_ledger_copy(&api_node2, &gov_subject).await;
     }
 
-/*
-    async fn api_test(api_node1: &KoreApi) {
-        let controller_id_node1 = api_node1.api.controller_id();
-
-        let gov_subject = create_event(&api_node1, "", "governance", "Acciona").await;
-        let payload = json!({
-            "Patch": {
-                "data": [
-                    {
-                        "op": "add",
-                        "path": "/members/0",
-                        "value": {
-                            "id": controller_id_node1,
-                            "name": "KoreNode1"
-                        }
-                    },
-                    {
-                        "op": "add",
-                        "path": "/roles/1",
-                        "value": {
-                            "namespace": "",
-                            "role": "CREATOR",
-                            "schema": {
-                                "ID": "AccionaTraceability"
-                            },
-                            "who": {
-                                "NAME": "KoreNode1"
-                            }
-                        }
-                    },
-                    {
-                    "op": "add",
-                    "path": "/roles/2",
-                    "value": {
-                        "namespace": "",
-                        "role": "ISSUER",
-                        "schema": {
-                            "ID": "AccionaTraceability"
-                        },
-                        "who": {
-                            "NAME": "KoreNode1"
-                        }
-                    }
-                    },
-                    {
-                        "op": "add",
-                        "path": "/policies/1",
-                        "value": {
-                            "approve": {
-                                "quorum": {
-                                    "FIXED": 1
-                                }
-                            },
-                            "evaluate": {
-                                "quorum": "MAJORITY"
-                            },
-                            "id": "AccionaTraceability",
-                            "validate": {
-                                "quorum": "MAJORITY"
-                            }
-                        }
-                    },
-                    {
-                        "op": "add",
-                        "path": "/schemas/0",
-                        "value": {
-                            "contract": {
-                                "raw": "dXNlIHRhcGxlX3NjX3J1c3QgYXMgc2RrOwp1c2Ugc2VyZGU6OntEZXNlcmlhbGl6ZSwgU2VyaWFsaXplfTsKCiNbZGVyaXZlKFNlcmlhbGl6ZSwgRGVzZXJpYWxpemUsIENsb25lKV0Kc3RydWN0IFN0YXRlIHsKICAgIHB1YiB3b3JrX2lkOiBTdHJpbmcsCiAgICBwdWIgdXNlcm5hbWU6IFN0cmluZywKICAgIHB1YiB3b3JrZXJfaWQ6IFN0cmluZywKICAgIHB1YiB3aGF0OiBWZWM8U3RyaW5nPiwKICAgIHB1YiBncm91cF9uYW1lOiBTdHJpbmcsCiAgICBwdWIgYXZlcmFnZV90cmFjZWFiaWxpdHk6IGYzMiwKfQoKCiNbZGVyaXZlKFNlcmlhbGl6ZSwgRGVzZXJpYWxpemUpXQplbnVtIFN0YXRlRXZlbnQgewogICAgUmVnaXN0ZXJPcmRlciB7CiAgICAgICAgd29ya19pZDogU3RyaW5nLAogICAgICAgIHVzZXJuYW1lOiBTdHJpbmcsCiAgICAgICAgd29ya2VyX2lkOiBTdHJpbmcsCiAgICAgICAgd2hhdDogVmVjPFN0cmluZz4sCiAgICAgICAgZ3JvdXBfbmFtZTogU3RyaW5nLAogICAgICAgIGF2ZXJhZ2VfdHJhY2VhYmlsaXR5OiBmMzIsCiAgICB9LAp9CgojW25vX21hbmdsZV0KcHViIHVuc2FmZSBmbiBtYWluX2Z1bmN0aW9uKHN0YXRlX3B0cjogaTMyLCBldmVudF9wdHI6IGkzMiwgaXNfb3duZXI6IGkzMikgLT4gdTMyIHsKICAgIHNkazo6ZXhlY3V0ZV9jb250cmFjdChzdGF0ZV9wdHIsIGV2ZW50X3B0ciwgaXNfb3duZXIsIGNvbnRyYWN0X2xvZ2ljKQp9CmZuIGNvbnRyYWN0X2xvZ2ljKAogICAgY29udGV4dDogJnNkazo6Q29udGV4dDxTdGF0ZSwgU3RhdGVFdmVudD4sCiAgICBjb250cmFjdF9yZXN1bHQ6ICZtdXQgc2RrOjpDb250cmFjdFJlc3VsdDxTdGF0ZT4sCikgewogICAgbGV0IHN0YXRlID0gJm11dCBjb250cmFjdF9yZXN1bHQuZmluYWxfc3RhdGU7CiAgICBtYXRjaCAmY29udGV4dC5ldmVudCB7CiAgICAgICAgU3RhdGVFdmVudDo6UmVnaXN0ZXJPcmRlciB7CiAgICAgICAgICAgIHdvcmtfaWQsCiAgICAgICAgICAgIHVzZXJuYW1lLAogICAgICAgICAgICB3b3JrZXJfaWQsCiAgICAgICAgICAgIHdoYXQsCiAgICAgICAgICAgIGdyb3VwX25hbWUsCiAgICAgICAgICAgIGF2ZXJhZ2VfdHJhY2VhYmlsaXR5LAogICAgICAgIH0gPT4gewogICAgICAgICAgICAgICAgc3RhdGUud29ya19pZCA9IHdvcmtfaWQudG9fc3RyaW5nKCk7CiAgICAgICAgICAgICAgICBzdGF0ZS51c2VybmFtZSA9IHVzZXJuYW1lLnRvX3N0cmluZygpOwogICAgICAgICAgICAgICAgc3RhdGUud29ya2VyX2lkID0gd29ya2VyX2lkLnRvX3N0cmluZygpOwogICAgICAgICAgICAgICAgc3RhdGUud2hhdCA9IHdoYXQudG9fdmVjKCk7CiAgICAgICAgICAgICAgICBzdGF0ZS5ncm91cF9uYW1lID0gZ3JvdXBfbmFtZS50b19zdHJpbmcoKTsKICAgICAgICAgICAgICAgIHN0YXRlLmF2ZXJhZ2VfdHJhY2VhYmlsaXR5ID0gKmF2ZXJhZ2VfdHJhY2VhYmlsaXR5OwogICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICBjb250cmFjdF9yZXN1bHQuc3VjY2VzcyA9IHRydWU7CiAgICAgICAgfQogICAgfQp9"
-                            },
-                            "id": "AccionaTraceability",
-                            "initial_value": {
-                                "work_id": "",
-                                "username": "",
-                                "worker_id": "",
-                                "what": [],
-                                "group_name": "",
-                                "average_traceability": 0.0
-                            },
-                            "schema": {
-                                        "description": "Traceability registration for Leganes",
-                                        "type": "object",
-                                        "properties": {
-                                            "work_id": {
-                                                "description": "Work order identifier",
-                                                "type": "string"
-                                            },
-                                            "username": {
-                                                "description": "Worker username",
-                                                "type": "string"
-                                            },
-                                            "worker_id": {
-                                                "description": "Worker identifier",
-                                                "type": "string"
-                                            },
-                                            "what": {
-                                                "description": "Actions performed on the work order",
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "group_name": {
-                                                "description": "Group of work order",
-                                                "type": "string"
-                                            },
-                                            "average_traceability": {
-                                                "description": "Average value of traceability of actions performed on the job",
-                                                "type": "number"
-                                            }
-                                },
-                                "required": [
-                                    "work_id", "username", "worker_id", "what", "group_name", "average_traceability"
-                                ],
-                                "additionalProperties": false
-                            }
-                        }
-                    }
-                ]
-            }
-        });
-        create_approval_event_and_vote(
-            &api_node1,
-            payload,
-            &gov_subject,
-            PatchVote::RespondedAccepted,
-        )
-        .await;
-
-        let subject = create_event(&api_node1, &gov_subject, "AccionaTraceability", "AccionaTraceability").await;
-
-        let payload = json!({
-            "RegisterOrder": {
-                "work_id": "26782378995634",
-                "username": "pepe",
-                "worker_id": "22",
-                "what": ["Limpieza", "Sustitución de piezas"],
-                "group_name": "oe3231",
-                "average_traceability": 2
-            }});
-
-        fact_event(&api_node1, &subject, payload).await;
-    }
-*/
-
     async fn api_public_key(api: &KoreApi) {
         let pub_key: String = api
             .generate_public_key(NodeKeys {
@@ -1188,10 +1043,14 @@ mod tests {
             105,
             vec![RoutingNode {
                 address: vec!["/ip4/127.0.0.1/tcp/50104".to_owned()],
-                peer_id: peer_id_node1
-            }]
+                peer_id: peer_id_node1,
+            }],
         );
         api_preauthorize_subject(&api_node1, &api_node2).await;
+
+        loop {
+            tokio::time::sleep(Duration::from_secs(5)).await
+        }
     }
 
     #[tokio::test]
@@ -1214,14 +1073,7 @@ mod tests {
         let api = export_leveldb_api(108, vec![]);
         api_get_validation_proof(&api).await;
     }
-/*
-    #[tokio::test]
-    #[cfg(feature = "leveldb")]
-    async fn test_leveldb_api_test() {
-        let api = export_leveldb_api(209, vec![]);
-        api_test(&api).await;
-    }
-*/
+
     /// Sqlite Tests
     #[tokio::test]
     #[cfg(feature = "sqlite")]
@@ -1256,8 +1108,8 @@ mod tests {
             205,
             vec![RoutingNode {
                 address: vec!["/ip4/127.0.0.1/tcp/50204".to_owned()],
-                peer_id: peer_id_node1
-            }]
+                peer_id: peer_id_node1,
+            }],
         );
         api_preauthorize_subject(&api_node1, &api_node2).await;
     }
@@ -1282,12 +1134,4 @@ mod tests {
         let api = export_sqlite_api(208, vec![]);
         api_get_validation_proof(&api).await;
     }
-/*
-    #[tokio::test]
-    #[cfg(feature = "sqlite")]
-    async fn test_sqlite_api_test() {
-        let api = export_sqlite_api(209, vec![]);
-        api_test(&api).await;
-    }
-*/
 }

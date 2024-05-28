@@ -25,6 +25,7 @@ tokio = { version = "1.37", features = ["signal"] }
 tokio-util = "0.7"
 prometheus-client = "0.22.2"
 config = {version = "0.14.0", features = ["json", "toml", "yaml"]}
+axum = { version = "0.7.5", optional = true }
 
 [dev-dependencies]
 serial_test = "3.0"
@@ -33,6 +34,7 @@ tokio = { version = "1.37", features = ["rt", "macros"] }
 
 
 [features]
-default = ["leveldb"]
+default = ["leveldb", "prometheus"]
+prometheus = ["axum"]
 leveldb = ["dep:leveldb", "db-key", "tempfile"]
 sqlite = ["rusqlite", "tempfile"]

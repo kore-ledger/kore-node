@@ -7,6 +7,7 @@ pub mod error;
 pub mod model;
 pub mod node;
 pub mod config;
+mod prometheus;
 mod settings;
 mod utils;
 
