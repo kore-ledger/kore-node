@@ -48,6 +48,7 @@ impl From<Params> for KoreSettings {
         Self {
             db: params.kore.db_path,
             keys_path: params.kore.keys_path,
+            prometheus: params.kore.prometheus,
             settings: kore_base::Settings {
                 network: kore_base::NetworkConfig {
                     user_agent: params.kore.network.user_agent,
@@ -83,6 +84,8 @@ struct KoreParams {
     db_path: DbSettings,
     #[serde(default = "default_keys_path")]
     keys_path: String,
+    #[serde(default = "default_prometheus")]
+    prometheus: String,
 }
 
 impl KoreParams {
@@ -109,6 +112,7 @@ impl KoreParams {
             node: NodeParams::from_env(&format!("{parent}_")),
             db_path: kore_params.db_path,
             keys_path: kore_params.keys_path,
+            prometheus: kore_params.prometheus
         }
     }
 
@@ -123,11 +127,17 @@ impl KoreParams {
         } else {
             self.db_path.clone()
         };
+        let prometheus = if other_config.prometheus != default_prometheus() {
+            other_config.prometheus
+        } else {
+            self.prometheus.clone()
+        };
         Self {
             network: self.network.mix_config(other_config.network),
             node: self.node.mix_config(other_config.node),
             db_path,
             keys_path,
+            prometheus
         }
     }
 }
@@ -152,8 +162,13 @@ impl Default for KoreParams {
             node: NodeParams::default(),
             db_path: default_db_path(),
             keys_path: default_keys_path(),
+            prometheus: default_prometheus()
         }
     }
+}
+
+fn default_prometheus() -> String {
+    "127.0.0.1:3050".to_owned()
 }
 
 fn default_db_path() -> DbSettings {
@@ -767,6 +782,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
         );
         assert_eq!(kore.keys_path, "examples/keys".to_owned());
+        assert_eq!(kore.prometheus, "127.0.0.1:3050".to_owned());
     }
 
     #[test]
@@ -917,6 +933,7 @@ mod tests {
     fn test_from_env_kore_params_value() {
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
+        std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
 
         let kore = KoreParams::from_env("KORE");
 
@@ -931,9 +948,11 @@ mod tests {
             DbSettings::Sqlite("./fake/db/path".to_owned())
         );
         assert_eq!(kore.keys_path, "./fake/keys/path".to_owned());
+        assert_eq!(kore.prometheus, "10.0.0.0:3030".to_owned());
 
         std::env::remove_var("KORE_DB_PATH");
         std::env::remove_var("KORE_KEYS_PATH");
+        std::env::remove_var("KORE_PROMETHEUS");
     }
 
     #[test]
@@ -973,6 +992,7 @@ mod tests {
         );
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
+        std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
 
         let params = Params::from_env();
         let boot_nodes = vec![
@@ -1067,6 +1087,7 @@ mod tests {
             DbSettings::Sqlite("./fake/db/path".to_owned())
         );
         assert_eq!(params.kore.keys_path, "./fake/keys/path".to_owned());
+        assert_eq!(params.kore.prometheus, "10.0.0.0:3030".to_owned());
 
         std::env::remove_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS");
         std::env::remove_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS");
@@ -1092,5 +1113,6 @@ mod tests {
         std::env::remove_var("KORE_NODE_TIMEOUT");
         std::env::remove_var("KORE_NODE_PASSVOTATION");
         std::env::remove_var("KORE_NODE_SMARTCONTRACTS_DIRECTORY");
+        std::env::remove_var("KORE_PROMETHEUS");
     }
 }

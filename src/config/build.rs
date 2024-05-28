@@ -126,6 +126,7 @@ mod tests {
         DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
     );
     assert_eq!(config.keys_path, "examples/keys".to_owned());
+    assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
     }
 
     #[test]
@@ -165,6 +166,7 @@ mod tests {
         );
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
+        std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
 
         let config = build_config(true, "");
 
@@ -274,6 +276,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
+        assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
 
         std::env::remove_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS");
         std::env::remove_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS");
@@ -299,6 +302,7 @@ mod tests {
         std::env::remove_var("KORE_NODE_TIMEOUT");
         std::env::remove_var("KORE_NODE_PASSVOTATION");
         std::env::remove_var("KORE_NODE_SMARTCONTRACTS_DIRECTORY");
+        std::env::remove_var("KORE_PROMETHEUS");
     }
 
     #[test]
@@ -386,6 +390,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
+        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
     }
 
     #[test]
@@ -423,7 +428,8 @@ mod tests {
                 "smartcontracts_directory": "./fake_route"
               },
               "db_path": "./fake/db/path",
-              "keys_path": "./fake/keys/path"
+              "keys_path": "./fake/keys/path",
+              "prometheus": "10.0.0.0:3030"
             }
           }"#;
         let temp_dir = TempDir::new().unwrap();
@@ -538,6 +544,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
+        assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
     }
 
     #[test]
@@ -675,6 +682,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
+        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
     }
 
     #[test]
@@ -726,6 +734,7 @@ mod tests {
         std::env::set_var("KORE_NODE_DIGEST_DERIVATOR", "Blake3_512");
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
+        std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
 
         let temp_dir = TempDir::new().unwrap();
         let temp_file_path = temp_dir.path().join("config.json");
@@ -839,6 +848,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
+        assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
 
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
@@ -851,6 +861,7 @@ mod tests {
         std::env::remove_var("KORE_NODE_DIGEST_DERIVATOR");
         std::env::remove_var("KORE_DB_PATH");
         std::env::remove_var("KORE_KEYS_PATH");
+        std::env::remove_var("KORE_PROMETHEUS");
     }
 
     #[test]
@@ -937,6 +948,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
+        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
     }
 
     #[test]
@@ -977,6 +989,7 @@ mod tests {
                 smartcontracts_directory: "./fake_route"
             db_path: "./fake/db/path"
             keys_path: "./fake/keys/path"
+            prometheus: "10.0.0.0:3030"
           "#;
         let temp_dir = TempDir::new().unwrap();
         let temp_file_path = temp_dir.path().join("config.yaml");
@@ -1090,6 +1103,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
+        assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
     }
 
     #[test]
@@ -1223,6 +1237,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
+        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
     }
 
     #[test]
@@ -1270,6 +1285,7 @@ mod tests {
         std::env::set_var("KORE_NODE_DIGEST_DERIVATOR", "Blake3_512");
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
+        std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
 
         let temp_dir = TempDir::new().unwrap();
         let temp_file_path = temp_dir.path().join("config.yaml");
@@ -1383,7 +1399,9 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
+        assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
 
+        std::env::remove_var("KORE_PROMETHEUS");
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
         std::env::remove_var("KORE_NETWORK_LISTEN_ADDRESSES");
@@ -1482,6 +1500,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
+        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
     }
 
     #[test]
@@ -1518,7 +1537,8 @@ mod tests {
         
         [kore]
         db_path = "./fake/db/path"
-        keys_path = "./fake/keys/path"        
+        keys_path = "./fake/keys/path"    
+        prometheus = "10.0.0.0:3030"    
         "#;
         let temp_dir = TempDir::new().unwrap();
         let temp_file_path = temp_dir.path().join("config.toml");
@@ -1632,6 +1652,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
+        assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
     }
 
     #[test]
@@ -1765,6 +1786,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
+        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
     }
 
     #[test]
@@ -1812,6 +1834,7 @@ mod tests {
         std::env::set_var("KORE_NODE_DIGEST_DERIVATOR", "Blake3_512");
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
+        std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
 
         let temp_dir = TempDir::new().unwrap();
         let temp_file_path = temp_dir.path().join("config.toml");
@@ -1925,7 +1948,9 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
+        assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
 
+        std::env::remove_var("KORE_PROMETHEUS");
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
         std::env::remove_var("KORE_NETWORK_LISTEN_ADDRESSES");

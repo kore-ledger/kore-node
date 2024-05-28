@@ -1047,10 +1047,6 @@ mod tests {
             }],
         );
         api_preauthorize_subject(&api_node1, &api_node2).await;
-
-        loop {
-            tokio::time::sleep(Duration::from_secs(5)).await
-        }
     }
 
     #[tokio::test]

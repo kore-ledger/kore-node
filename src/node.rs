@@ -70,11 +70,11 @@ impl LevelDBNode {
 
         let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager)
             .map_err(|_| {NodeError::InternalApi("Node build error".to_owned())})?;
-        let settings = settings.settings.node;
         
         #[cfg(feature = "prometheus")]
-        run_prometheus(registry);
+        run_prometheus(registry, &settings.prometheus);
     
+        let settings = settings.settings.node;
         Ok(Self {
             api: KoreApi::new(
                 api,
@@ -150,11 +150,11 @@ impl SqliteNode {
 
         let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager)
             .map_err(|_| NodeError::InternalApi("Node build error".to_owned()))?;
-        let settings = settings.settings.node;
 
         #[cfg(feature = "prometheus")]
-        run_prometheus(registry);
+        run_prometheus(registry, &settings.prometheus);
 
+        let settings = settings.settings.node;
         Ok(Self {
             api: KoreApi::new(
                 api,
@@ -220,6 +220,7 @@ pub mod tests {
         let path = tempdir.path().join(format!("keys{}", node));
         let password = format!("password{}", node);
         let mut settings = KoreSettings::default();
+        settings.prometheus = format!("127.0.0.1:3{}", node);
         settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes, false);
         settings.db = DbSettings::LevelDB(path.to_str().unwrap().to_owned());
         settings.keys_path = path.to_str().unwrap().to_owned();
@@ -250,6 +251,7 @@ pub mod tests {
         let path = tempdir.path().join(format!("keys{}", node));
         let password = format!("password{}", node);
         let mut settings = KoreSettings::default();
+        settings.prometheus = format!("127.0.0.1:3{}", node);
         settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes, false);
 
         settings.db = DbSettings::Sqlite(format!("{}/database",path.to_str().unwrap().to_owned()));
