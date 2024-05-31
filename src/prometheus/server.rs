@@ -15,7 +15,7 @@ pub async fn handler_prometheus_data(Extension(state): Extension<Arc<RwLock<Stat
 
 pub fn build_routes(registry: Registry) -> Router {
   let state = Arc::new(RwLock::new(State {
-    registry: registry
+    registry
   }));
   
   let endpoints = Router::new()

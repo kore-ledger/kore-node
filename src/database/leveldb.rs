@@ -194,10 +194,7 @@ impl<'a> LeveldbIterator<'a> {
 impl<'a> Iterator for LeveldbIterator<'a> {
     type Item = (String, Vec<u8>);
     fn next(&mut self) -> Option<(String, Vec<u8>)> {
-        let item = self.iter.next();
-        let Some(item) = item else {
-            return None;
-        };
+        let item = self.iter.next()?;
         let key = {
             let StringKey(value) = item.0;
             if !value.starts_with(&self.table_name) {
@@ -223,10 +220,7 @@ impl<'a> RevLeveldbIterator<'a> {
 impl<'a> Iterator for RevLeveldbIterator<'a> {
     type Item = (String, Vec<u8>);
     fn next(&mut self) -> Option<Self::Item> {
-        let item = self.iter.next();
-        let Some(item) = item else {
-            return None;
-        };
+        let item = self.iter.next()?;
         let key = {
             let StringKey(value) = item.0;
             if !value.starts_with(&self.table_name) {
