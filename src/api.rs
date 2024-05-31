@@ -709,30 +709,6 @@ mod tests {
         }
         status.subject_id.unwrap()
     }
-    /*
-        async fn fact_event(api: &KoreApi, subj: &str, payload: Value) {
-            let res = api
-                .send_event_request(NodeSignedEventRequest {
-                    request: NodeEventRequest::Fact(NodeFactRequest { subject_id: subj.to_owned(), payload} ),
-                    signature: None,
-                })
-                .await
-                .unwrap();
-            let mut status;
-            loop {
-                status = api.get_event_request_state(&res.request_id).await.unwrap();
-                match status.success {
-                    Some(val) => {
-                        assert!(val);
-                        break;
-                    }
-                    None => {
-                        tokio::time::sleep(Duration::from_millis(300)).await;
-                    }
-                }
-            }
-        }
-    */
 
     /// Method that creates an approval event and performs the vote
     async fn create_approval_event_and_vote(
