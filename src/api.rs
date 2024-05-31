@@ -408,7 +408,7 @@ impl KoreApi {
     ///
     /// * `String` - 'Ok' if everything went well.
     ///
-    pub async fn generate_public_key(&self, parameters: NodeKeys) -> Result<String, NodeError> {
+    pub async fn register_keys(&self, parameters: NodeKeys) -> Result<String, NodeError> {
         let derivator = KeyDerivator::from(parameters.algorithm.unwrap_or(KeyAlgorithms::Ed25519));
 
         match self.api.add_keys(derivator).await {
@@ -652,6 +652,30 @@ impl KoreApi {
                 "Failed to process request".to_owned(),
             )),
         }
+    }
+
+    /// Get Controller ID.
+    ///
+    /// # Returns
+    ///
+    /// * `String - Controller ID
+    ///
+    pub async fn get_controller_id(
+        &self
+    ) -> String {
+        self.api.controller_id().clone()
+    }
+
+    /// Get Peer ID.
+    ///
+    /// # Returns
+    ///
+    /// * `String - Peer ID
+    ///
+    pub async fn get_peer_id(
+        &self
+    ) -> String {
+        self.api.peer_id().to_string()
     }
 }
 
@@ -945,7 +969,7 @@ mod tests {
 
     async fn api_public_key(api: &KoreApi) {
         let pub_key: String = api
-            .generate_public_key(NodeKeys {
+            .register_keys(NodeKeys {
                 algorithm: Some(crate::model::KeyAlgorithms::Ed25519),
             })
             .await

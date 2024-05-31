@@ -451,6 +451,7 @@ pub struct AuthorizeSubject {
     pub providers: Vec<String>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
 pub struct NodeKeys {
     /// Algorith to generate keys pair
     pub algorithm: Option<KeyAlgorithms>,
