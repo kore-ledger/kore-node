@@ -132,7 +132,7 @@ mod tests {
         DbSettings::Sqlite("examples/sqlitedb".to_owned())
     );
     assert_eq!(config.keys_path, "examples/keys".to_owned());
-    assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
+    assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
     }
 
     #[test]
@@ -396,7 +396,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
-        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
+        assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
     }
 
     #[test]
@@ -688,7 +688,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
-        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
+        assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
     }
 
     #[test]
@@ -954,7 +954,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
-        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
+        assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
     }
 
     #[test]
@@ -1243,7 +1243,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
-        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
+        assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
     }
 
     #[test]
@@ -1506,7 +1506,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
-        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
+        assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
     }
 
     #[test]
@@ -1792,7 +1792,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
-        assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
+        assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
     }
 
     #[test]

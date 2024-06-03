@@ -168,7 +168,7 @@ impl Default for KoreParams {
 }
 
 fn default_prometheus() -> String {
-    "127.0.0.1:3050".to_owned()
+    "0.0.0.0:3050".to_owned()
 }
 
 fn default_db_path() -> DbSettings {
@@ -782,7 +782,7 @@ mod tests {
             DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(kore.keys_path, "examples/keys".to_owned());
-        assert_eq!(kore.prometheus, "127.0.0.1:3050".to_owned());
+        assert_eq!(kore.prometheus, "0.0.0.0:3050".to_owned());
     }
 
     #[test]
