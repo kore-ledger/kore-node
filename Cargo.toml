@@ -1,6 +1,6 @@
 [package]
 name = "kore-node"
-version = "0.4.1"
+version = "0.5.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -26,6 +26,7 @@ tokio-util = "0.7"
 prometheus-client = "0.22.2"
 config = {version = "0.14.0", features = ["json", "toml", "yaml"]}
 axum = { version = "0.7.5", optional = true }
+clap = { version = "4.5.4", features = ["derive"] }
 
 [dev-dependencies]
 serial_test = "3.0"

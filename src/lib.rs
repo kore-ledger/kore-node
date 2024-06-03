@@ -10,6 +10,7 @@ pub mod config;
 mod prometheus;
 mod settings;
 mod utils;
+pub use clap;
 
 pub use api::KoreApi;
 #[cfg(feature = "leveldb")]

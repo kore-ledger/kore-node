@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::settings::KoreSettings;
 use config::Config;
 
@@ -34,6 +36,10 @@ pub fn build_config(env: bool, file: &str) -> KoreSettings {
 
     // Mix configurations.
     KoreSettings::from(params_env.mix_config(params_file))
+}
+
+pub fn build_password() -> String {
+    env::var("KORE_PASSWORD").unwrap()
 }
 
 #[cfg(test)]
