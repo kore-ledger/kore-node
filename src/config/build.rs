@@ -129,7 +129,7 @@ mod tests {
     #[cfg(feature = "sqlite")]
     assert_eq!(
         config.db,
-        DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
+        DbSettings::Sqlite("examples/sqlitedb".to_owned())
     );
     assert_eq!(config.keys_path, "examples/keys".to_owned());
     assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
@@ -393,7 +393,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(
             config.db,
-            DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
+            DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
@@ -685,7 +685,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(
             config.db,
-            DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
+            DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
@@ -951,7 +951,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(
             config.db,
-            DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
+            DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
@@ -1240,7 +1240,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(
             config.db,
-            DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
+            DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
@@ -1503,7 +1503,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(
             config.db,
-            DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
+            DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());
@@ -1789,7 +1789,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(
             config.db,
-            DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
+            DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "127.0.0.1:3050".to_owned());

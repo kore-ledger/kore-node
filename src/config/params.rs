@@ -175,7 +175,7 @@ fn default_db_path() -> DbSettings {
     #[cfg(feature = "leveldb")]
     return DbSettings::LevelDB("examples/leveldb".to_owned());
     #[cfg(feature = "sqlite")]
-    return DbSettings::Sqlite("examples/sqlitedb/database".to_owned());
+    return DbSettings::Sqlite("examples/sqlitedb".to_owned());
     #[cfg(feature = "cassandra")]
     return DbSettings::Cassandra;
 }
@@ -779,7 +779,7 @@ mod tests {
         #[cfg(feature = "sqlite")]
         assert_eq!(
             kore.db_path,
-            DbSettings::Sqlite("examples/sqlitedb/database".to_owned())
+            DbSettings::Sqlite("examples/sqlitedb".to_owned())
         );
         assert_eq!(kore.keys_path, "examples/keys".to_owned());
         assert_eq!(kore.prometheus, "127.0.0.1:3050".to_owned());
