@@ -68,8 +68,9 @@ impl LevelDBNode {
         let manager = LeveldbManager::new(db);
         
         let mut registry = <Registry>::default();
+        let cancellation = CancellationToken::new();
 
-        let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager)
+        let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager, cancellation.clone())
             .map_err(|_| {NodeError::InternalApi("Node build error".to_owned())})?;
         
         #[cfg(feature = "prometheus")]
@@ -83,7 +84,7 @@ impl LevelDBNode {
                 settings.digest_derivator,
                 settings.key_derivator,
             ),
-            cancellation: CancellationToken::new(),
+            cancellation,
         })
     }
 }
@@ -149,7 +150,8 @@ impl SqliteNode {
         
         let mut registry = <Registry>::default();
 
-        let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager)
+        let cancellation = CancellationToken::new();
+        let api= Node::build(settings.settings.clone(), key_pair.clone(), &mut registry, manager, cancellation.clone())
             .map_err(|_| NodeError::InternalApi("Node build error".to_owned()))?;
 
         #[cfg(feature = "prometheus")]
@@ -163,7 +165,7 @@ impl SqliteNode {
                 settings.digest_derivator,
                 settings.key_derivator,
             ),
-            cancellation: CancellationToken::new(),
+            cancellation,
         })
     }
 }
