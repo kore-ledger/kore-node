@@ -42,6 +42,11 @@ pub fn build_password() -> String {
     env::var("KORE_PASSWORD").unwrap()
 }
 
+pub fn build_file_path() -> String {
+    env::var("KORE_FILE_PATH").unwrap_or_default()
+}
+
+
 #[cfg(test)]
 mod tests {
     use std::{num::NonZeroUsize, time::Duration};
