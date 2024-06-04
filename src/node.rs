@@ -4,8 +4,9 @@ use prometheus_client::registry::Registry;
 
 #[cfg(feature = "leveldb")]
 use std::path::Path;
-
-use crate::{error::NodeError, prometheus::server::run_prometheus, settings::{DbSettings, KoreSettings}, utils::node_key_pair, KoreApi};
+#[cfg(feature = "prometheus")]
+use crate::prometheus::server::run_prometheus;
+use crate::{error::NodeError,  settings::{DbSettings, KoreSettings}, utils::node_key_pair, KoreApi};
 
 #[cfg(feature = "leveldb")]
 use crate::database::leveldb::{LeveldbManager, open_db};

@@ -7,6 +7,7 @@ pub mod error;
 pub mod model;
 pub mod node;
 pub mod config;
+#[cfg(feature = "prometheus")]
 mod prometheus;
 mod settings;
 mod utils;
