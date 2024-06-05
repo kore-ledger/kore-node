@@ -29,6 +29,13 @@ pub trait KoreNode {
     /// * `&KoreApi` - Kore API
     /// 
     fn api(&self) -> &KoreApi;
+    /// Get the CancellationToken.
+    /// 
+    /// # Returns
+    /// 
+    /// * `&CancellationToken` - Cancellation Token
+    /// 
+    fn token(&self) -> &CancellationToken;
     /// Bind the node to the provided shutdown signal.
     /// 
     /// # Arguments
@@ -104,6 +111,16 @@ impl KoreNode for LevelDBNode {
         &self.api
     }
 
+    /// Get the Kore CancellationToken.
+    /// 
+    /// # Returns
+    /// 
+    /// * `&CancellationToken` - Cancellation Token
+    /// 
+    fn token(&self) -> &CancellationToken {
+        &self.cancellation
+    }
+
     /// Bind the node to the provided shutdown signal.
     /// 
     /// # Arguments
@@ -126,7 +143,7 @@ pub struct SqliteNode {
     /// Kore API.
     api: KoreApi,
     /// Cancellation token.
-    pub cancellation: CancellationToken,
+    cancellation: CancellationToken,
 }
 
 /// Implementation for `SqliteNode`.
@@ -183,6 +200,16 @@ impl KoreNode for SqliteNode {
     /// 
     fn api(&self) -> &KoreApi {
         &self.api
+    }
+
+    /// Get the Kore CancellationToken.
+    /// 
+    /// # Returns
+    /// 
+    /// * `&CancellationToken` - Cancellation Token
+    /// 
+    fn token(&self) -> &CancellationToken {
+        &self.cancellation
     }
 
     /// Bind the node to the provided shutdown signal.
