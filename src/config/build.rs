@@ -161,7 +161,6 @@ mod tests {
             "KORE_NETWORK_ROUTING_PROTOCOL_NAMES",
             "/kore/routing/2.2.2,/kore/routing/1.1.1",
         );
-        std::env::set_var("KORE_NETWORK_ROUTINGPORT_REUSE", "true");
         std::env::set_var("KORE_NODE_KEY_DERIVATOR", "Secp256k1");
         std::env::set_var("KORE_NODE_DIGEST_DERIVATOR", "Blake3_512");
         std::env::set_var("KORE_NODE_REPLICATION_FACTOR", "0.555");
@@ -300,7 +299,6 @@ mod tests {
         std::env::remove_var("KORE_NETWORK_ROUTING_KADEMLIA_DISJOINT_QUERY_PATHS");
         std::env::remove_var("KORE_NETWORK_ROUTING_KADEMLIA_REPLICATION_FACTOR");
         std::env::remove_var("KORE_NETWORK_ROUTING_PROTOCOL_NAMES");
-        std::env::remove_var("KORE_NETWORK_ROUTINGPORT_REUSE");
         std::env::remove_var("KORE_DB_PATH");
         std::env::remove_var("KORE_KEYS_PATH");
         std::env::remove_var("KORE_NETWORK_PORT_REUSE");
