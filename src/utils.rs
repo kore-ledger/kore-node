@@ -108,6 +108,14 @@ pub fn node_key_pair(settings: &KoreSettings, password: &str) -> Result<KeyPair,
     } 
 }
 
+#[cfg(feature = "sqlite")]
+pub fn split_path(path: &str) -> (String, String) {
+    let mut parts: Vec<&str> = path.rsplitn(2, '/').collect();
+    parts.reverse(); // rsplitn coloca la última parte al principio, así que necesitamos revertir
+    let (last, rest) = (parts[0].to_string(), parts[1].to_string());
+    (rest, last)
+}
+
 #[cfg(test)]
 mod tests {
 

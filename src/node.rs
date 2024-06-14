@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use prometheus_client::registry::Registry;
 
+use std::fs;
 #[cfg(feature = "leveldb")]
 use std::path::Path;
 #[cfg(feature = "prometheus")]
@@ -12,6 +13,8 @@ use crate::{error::NodeError,  settings::{DbSettings, KoreSettings}, utils::node
 use crate::database::leveldb::{LeveldbManager, open_db};
 #[cfg(feature = "sqlite")]
 use crate::database::sqlite::SqliteManager;
+#[cfg(feature = "sqlite")]
+use crate::utils::split_path;
 
 use kore_base::Node;
 
@@ -71,6 +74,13 @@ impl LevelDBNode {
     pub fn build(settings: KoreSettings, password: &str) -> Result<Self, NodeError> {
         let key_pair = node_key_pair(&settings, password)?;
         let DbSettings::LevelDB(path) = settings.db;
+
+        if fs::metadata(&path).is_err() {
+            fs::create_dir_all(&path).map_err(|error| {
+                NodeError::InternalApi(format!("Error creating keys directory: {}", error))
+            })?;
+        }
+
         let db = open_db(Path::new(&path));
         let manager = LeveldbManager::new(db);
         
@@ -163,6 +173,13 @@ impl SqliteNode {
     pub fn build(settings: KoreSettings, password: &str) -> Result<Self, NodeError> {
         let key_pair = node_key_pair(&settings, password)?;
         let DbSettings::Sqlite(path) = settings.db;
+        let (_, all_path) = split_path(&path); 
+        if fs::metadata(&all_path).is_err() {
+            fs::create_dir_all(&all_path).map_err(|error| {
+                NodeError::InternalApi(format!("Error creating keys directory: {}", error))
+            })?;
+        }
+        
         let manager = SqliteManager::new(&path);
         
         let mut registry = <Registry>::default();
@@ -252,7 +269,7 @@ pub mod tests {
         let mut settings = KoreSettings::default();
         settings.prometheus = format!("127.0.0.1:3{}", node);
         settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes, false);
-        settings.db = DbSettings::LevelDB(path.to_str().unwrap().to_owned());
+        settings.db = DbSettings::LevelDB(format!("{}/hola/elpepe/leveldb",path.to_str().unwrap().to_owned()));
         settings.keys_path = path.to_str().unwrap().to_owned();
         LevelDBNode::build(settings, &password)
     }
@@ -284,7 +301,7 @@ pub mod tests {
         settings.prometheus = format!("127.0.0.1:3{}", node);
         settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes, false);
 
-        settings.db = DbSettings::Sqlite(format!("{}/database",path.to_str().unwrap().to_owned()));
+        settings.db = DbSettings::Sqlite(format!("{}/hola/elpepe/sqlite/database",path.to_str().unwrap().to_owned()));
         settings.keys_path = path.to_str().unwrap().to_owned();
         SqliteNode::build(settings, &password)
     }
