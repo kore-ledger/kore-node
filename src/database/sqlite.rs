@@ -73,13 +73,15 @@ impl SqliteCollection {
         let query = format!("SELECT id, value FROM {} ORDER BY id {}", self.table, order);
         let mut stmt = conn.prepare(&query)?;
         let mut rows = stmt.query([])?;
+        let mut position_to_cut;
         let mut values = Vec::new();
         while let Some(row) = rows.next()? {
             let key: String = row.get(0)?;
             if !key.starts_with(prefix) {
                 continue;
             }
-            values.push((key, row.get(1)?));
+            position_to_cut = key.rfind(char::MAX).unwrap_or(0);
+            values.push((key[position_to_cut..key.len()].to_string(), row.get(1)?));
         }
         Ok(Box::new(values.into_iter()))
     }
@@ -103,7 +105,10 @@ impl DatabaseCollection for SqliteCollection {
             .conn
             .lock()
             .map_err(|_| Error::CustomError("open connection".to_owned()))?;
-        let stmt = format!("INSERT OR REPLACE INTO {} (id, value) VALUES (?1, ?2)", &self.table);
+        let stmt = format!(
+            "INSERT OR REPLACE INTO {} (id, value) VALUES (?1, ?2)",
+            &self.table
+        );
         conn.execute(&stmt, params![key, data])
             .map_err(|_| Error::CustomError("insert error".to_owned()))?;
         Ok(())
@@ -179,7 +184,7 @@ mod tests {
     fn test_sqlite() {
         let db = SqliteManager::default();
         let first_collection = db.create_collection("first_example");
-        
+
         let mut iter = first_collection.iter(false, "first_example");
         assert!(iter.next().is_none());
         build_state(&first_collection);
