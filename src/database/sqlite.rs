@@ -73,7 +73,7 @@ impl SqliteCollection {
         let query = format!("SELECT id, value FROM {} ORDER BY id {}", self.table, order);
         let mut stmt = conn.prepare(&query)?;
         let mut rows = stmt.query([])?;
-        let mut position_to_cut = 0;
+        let mut position_to_cut;
         let mut values = Vec::new();
         while let Some(row) = rows.next()? {
             let key: String = row.get(0)?;
