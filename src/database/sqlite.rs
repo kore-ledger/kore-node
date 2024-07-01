@@ -200,7 +200,7 @@ mod tests {
         let mut iter = first_collection.iter(false, "a");
         for i in 0..2 {
             let (key, val) = iter.next().unwrap();
-            assert_eq!(keys[i], key);
+            assert_eq!(keys[i].replace("a", ""), key);
             assert_eq!(data[i], val);
         }
         assert!(iter.next().is_none());
@@ -208,11 +208,11 @@ mod tests {
 
     fn build_state(collection: &SqliteCollection) {
         let data = get_data().unwrap();
-        let result = collection.put("aa", &data[0]);
+        let result = collection.put("a1", &data[0]);
         assert!(result.is_ok());
-        let result = collection.put("ab", &data[1]);
+        let result = collection.put("a2", &data[1]);
         assert!(result.is_ok());
-        let result = collection.put("bc", &data[2]);
+        let result = collection.put("b1", &data[2]);
         assert!(result.is_ok());
     }
 
@@ -257,7 +257,7 @@ mod tests {
 
     #[allow(dead_code)]
     fn build_initial_data() -> (Vec<&'static str>, Vec<Vec<u8>>) {
-        let keys = vec!["aa", "ab", "bc"];
+        let keys = vec!["a1", "a2", "b1"];
         let data = get_data().unwrap();
         let values = vec![data[0].to_owned(), data[1].to_owned(), data[2].to_owned()];
         (keys, values)

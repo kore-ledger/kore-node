@@ -35,7 +35,7 @@ tokio = { version = "1.37", features = ["rt", "macros"] }
 
 
 [features]
-default = ["leveldb", "prometheus"]
+default = ["sqlite", "prometheus"]
 prometheus = ["axum"]
 leveldb = ["dep:leveldb", "db-key", "tempfile"]
 sqlite = ["rusqlite", "tempfile"]
