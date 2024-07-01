@@ -73,15 +73,14 @@ impl SqliteCollection {
         let query = format!("SELECT id, value FROM {} ORDER BY id {}", self.table, order);
         let mut stmt = conn.prepare(&query)?;
         let mut rows = stmt.query([])?;
-        let mut position_to_cut;
         let mut values = Vec::new();
         while let Some(row) = rows.next()? {
             let key: String = row.get(0)?;
             if !key.starts_with(prefix) {
                 continue;
             }
-            position_to_cut = key.rfind(char::MAX).unwrap_or(0);
-            values.push((key[position_to_cut..key.len()].to_string(), row.get(1)?));
+            let key = key.replace(prefix, "");
+            values.push((key.to_string(), row.get(1)?));
         }
         Ok(Box::new(values.into_iter()))
     }
