@@ -268,7 +268,7 @@ pub mod tests {
         let password = format!("password{}", node);
         let mut settings = KoreSettings::default();
         settings.prometheus = format!("127.0.0.1:3{}", node);
-        settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes, false);
+        settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], vec![], boot_nodes, false);
         settings.db = DbSettings::LevelDB(format!("{}/hola/elpepe/leveldb",path.to_str().unwrap().to_owned()));
         settings.keys_path = path.to_str().unwrap().to_owned();
         LevelDBNode::build(settings, &password)
@@ -299,7 +299,7 @@ pub mod tests {
         let password = format!("password{}", node);
         let mut settings = KoreSettings::default();
         settings.prometheus = format!("127.0.0.1:3{}", node);
-        settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], boot_nodes, false);
+        settings.settings.network = NetworkConfig::new(NodeType::Bootstrap, vec![format!("/ip4/127.0.0.1/tcp/{}", 50000 + node)], vec![], boot_nodes, false,);
 
         settings.db = DbSettings::Sqlite(format!("{}/hola/elpepe/sqlite/database",path.to_str().unwrap().to_owned()));
         settings.keys_path = path.to_str().unwrap().to_owned();

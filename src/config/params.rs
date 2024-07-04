@@ -54,6 +54,7 @@ impl From<Params> for KoreSettings {
                     user_agent: params.kore.network.user_agent,
                     node_type: params.kore.network.node_type,
                     listen_addresses: params.kore.network.listen_addresses,
+                    external_addresses: params.kore.network.external_addresses,
                     tell,
                     routing,
                     port_reuse: params.kore.network.port_reuse,
