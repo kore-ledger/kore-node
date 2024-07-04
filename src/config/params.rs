@@ -54,6 +54,7 @@ impl From<Params> for KoreSettings {
                     user_agent: params.kore.network.user_agent,
                     node_type: params.kore.network.node_type,
                     listen_addresses: params.kore.network.listen_addresses,
+                    external_addresses: params.kore.network.external_addresses,
                     tell,
                     routing,
                     port_reuse: params.kore.network.port_reuse,
@@ -193,6 +194,8 @@ struct NetworkParams {
     #[serde(default)]
     listen_addresses: Vec<String>,
     #[serde(default)]
+    external_addresses: Vec<String>,
+    #[serde(default)]
     tell: TellParams,
     #[serde(default)]
     routing: RoutingParams,
@@ -207,6 +210,9 @@ impl NetworkParams {
             config::Environment::with_prefix(&format!("{parent}NETWORK"))
                 .list_separator(",")
                 .with_list_parse_key("listen_addresses")
+                .try_parsing(true)
+                .list_separator(",")
+                .with_list_parse_key("external_addresses")
                 .try_parsing(true),
         );
 
@@ -229,6 +235,7 @@ impl NetworkParams {
             user_agent: network.user_agent,
             node_type: network.node_type,
             listen_addresses: network.listen_addresses,
+            external_addresses: network.external_addresses,
             tell: TellParams::from_env(parent),
             routing: RoutingParams::from_env(parent),
             port_reuse: network.port_reuse,
@@ -254,6 +261,12 @@ impl NetworkParams {
             self.listen_addresses.clone()
         };
 
+        let external_addresses = if !other_config.external_addresses.is_empty() {
+            other_config.external_addresses
+        } else {
+            self.external_addresses.clone()
+        };
+
         let port_reuse = if other_config.port_reuse {
             other_config.port_reuse
         } else {
@@ -264,6 +277,7 @@ impl NetworkParams {
             user_agent,
             node_type,
             listen_addresses,
+            external_addresses,
             tell: self.tell.mix_config(other_config.tell),
             routing: self.routing.mix_config(other_config.routing),
             port_reuse,
@@ -285,6 +299,7 @@ impl Default for NetworkParams {
             user_agent: default_user_agent(),
             node_type: default_node_type(),
             listen_addresses: vec![],
+            external_addresses: vec![],
             tell: TellParams::default(),
             routing: RoutingParams::default(),
             port_reuse: false,
@@ -764,6 +779,7 @@ mod tests {
         assert_eq!(network.user_agent, "kore-node");
         assert_eq!(network.node_type, NodeType::Bootstrap);
         assert!(network.listen_addresses.is_empty());
+        assert!(network.external_addresses.is_empty());
     }
 
     #[test]
@@ -909,6 +925,10 @@ mod tests {
             "KORE_NETWORK_LISTEN_ADDRESSES",
             "/ip4/127.0.0.1/tcp/50000,/ip4/127.0.0.1/tcp/50001,/ip4/127.0.0.1/tcp/50002",
         );
+        std::env::set_var(
+            "KORE_NETWORK_EXTERNAL_ADDRESSES",
+            "/ip4/90.0.0.1/tcp/50000,/ip4/90.0.0.2/tcp/50000",
+        );
         let network = NetworkParams::from_env("KORE_");
 
         assert_eq!(network.port_reuse, true);
@@ -922,10 +942,20 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
             ]
         );
+
+        assert_eq!(
+            network.external_addresses,
+            vec![
+                "/ip4/90.0.0.1/tcp/50000".to_owned(),
+                "/ip4/90.0.0.2/tcp/50000".to_owned(),
+            ]
+        );
+    
         std::env::remove_var("KORE_NETWORK_PORT_REUSE");
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
         std::env::remove_var("KORE_NETWORK_LISTEN_ADDRESSES");
+        std::env::remove_var("KORE_NETWORK_EXTERNAL_ADDRESSES");
     }
 
     #[test]
@@ -990,6 +1020,10 @@ mod tests {
             "KORE_NETWORK_LISTEN_ADDRESSES",
             "/ip4/127.0.0.1/tcp/50000,/ip4/127.0.0.1/tcp/50001,/ip4/127.0.0.1/tcp/50002",
         );
+        std::env::set_var(
+            "KORE_NETWORK_EXTERNAL_ADDRESSES",
+            "/ip4/90.0.0.1/tcp/50000,/ip4/90.0.0.2/tcp/50000",
+        );
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
         std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
@@ -1021,6 +1055,15 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50000".to_owned(),
                 "/ip4/127.0.0.1/tcp/50001".to_owned(),
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+
+
+        assert_eq!(
+            params.kore.network.external_addresses,
+            vec![
+                "/ip4/90.0.0.1/tcp/50000".to_owned(),
+                "/ip4/90.0.0.2/tcp/50000".to_owned(),
             ]
         );
         assert_eq!(
@@ -1107,6 +1150,7 @@ mod tests {
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
         std::env::remove_var("KORE_NETWORK_LISTEN_ADDRESSES");
+        std::env::remove_var("KORE_NETWORK_EXTERNAL_ADDRESSES");
         std::env::remove_var("KORE_NODE_KEY_DERIVATOR");
         std::env::remove_var("KORE_NODE_DIGEST_DERIVATOR");
         std::env::remove_var("KORE_NODE_REPLICATION_FACTOR");

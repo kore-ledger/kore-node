@@ -68,6 +68,7 @@ mod tests {
     assert_eq!(config.settings.network.user_agent, "kore-node");
     assert_eq!(config.settings.network.node_type, NodeType::Bootstrap);
     assert!(config.settings.network.listen_addresses.is_empty(),);
+    assert!(config.settings.network.external_addresses.is_empty(),);
     assert_eq!(config.settings.node.key_derivator, KeyDerivator::Ed25519);
     assert_eq!(
         config.settings.node.digest_derivator,
@@ -174,6 +175,10 @@ mod tests {
             "KORE_NETWORK_LISTEN_ADDRESSES",
             "/ip4/127.0.0.1/tcp/50000,/ip4/127.0.0.1/tcp/50001,/ip4/127.0.0.1/tcp/50002",
         );
+        std::env::set_var(
+            "KORE_NETWORK_EXTERNAL_ADDRESSES",
+            "/ip4/90.1.0.60/tcp/50000,/ip4/90.1.0.61/tcp/50000",
+        );
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
         std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
@@ -206,6 +211,13 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50000".to_owned(),
                 "/ip4/127.0.0.1/tcp/50001".to_owned(),
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+        assert_eq!(
+            config.settings.network.external_addresses,
+            vec![
+                "/ip4/90.1.0.60/tcp/50000".to_owned(),
+                "/ip4/90.1.0.61/tcp/50000".to_owned(),
             ]
         );
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Secp256k1);
@@ -305,6 +317,7 @@ mod tests {
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
         std::env::remove_var("KORE_NETWORK_LISTEN_ADDRESSES");
+        std::env::remove_var("KORE_NETWORK_EXTERNAL_ADDRESSES");
         std::env::remove_var("KORE_NODE_KEY_DERIVATOR");
         std::env::remove_var("KORE_NODE_DIGEST_DERIVATOR");
         std::env::remove_var("KORE_NODE_REPLICATION_FACTOR");
@@ -330,6 +343,7 @@ mod tests {
         assert_eq!(config.settings.network.user_agent, "kore-node");
         assert_eq!(config.settings.network.node_type, NodeType::Bootstrap);
         assert!(config.settings.network.listen_addresses.is_empty(),);
+        assert!(config.settings.network.external_addresses.is_empty(),);
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Ed25519);
         assert_eq!(
             config.settings.node.digest_derivator,
@@ -411,6 +425,7 @@ mod tests {
                   "user_agent": "Kore2.0",
                   "node_type": "Addressable",
                   "listen_addresses": ["/ip4/127.0.0.1/tcp/50000","/ip4/127.0.0.1/tcp/50001","/ip4/127.0.0.1/tcp/50002"],
+                  "external_addresses": ["/ip4/90.1.0.60/tcp/50000", "/ip4/90.1.0.61/tcp/50000"],
                   "tell": {
                     "message_timeout_secs": 58,
                     "max_concurrent_streams": 166
@@ -473,6 +488,13 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50000".to_owned(),
                 "/ip4/127.0.0.1/tcp/50001".to_owned(),
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+        assert_eq!(
+            config.settings.network.external_addresses,
+            vec![
+                "/ip4/90.1.0.60/tcp/50000".to_owned(),
+                "/ip4/90.1.0.61/tcp/50000".to_owned(),
             ]
         );
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Secp256k1);
@@ -610,6 +632,7 @@ mod tests {
         assert_eq!(config.settings.network.user_agent, "kore-node");
         assert_eq!(config.settings.network.node_type, NodeType::Bootstrap);
         assert!(config.settings.network.listen_addresses.is_empty(),);
+        assert!(config.settings.network.external_addresses.is_empty(),);
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Ed25519);
         assert_eq!(
             config.settings.node.digest_derivator,
@@ -701,6 +724,7 @@ mod tests {
         {
             "kore": {
               "network": {
+                "external_addresses": ["/ip4/90.1.0.60/tcp/50000", "/ip4/90.1.0.61/tcp/50000"],
                 "user_agent": "Kore3.0",
                   "tell": {
                     "message_timeout_secs": 58,
@@ -777,6 +801,13 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50000".to_owned(),
                 "/ip4/127.0.0.1/tcp/50001".to_owned(),
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+        assert_eq!(
+            config.settings.network.external_addresses,
+            vec![
+                "/ip4/90.1.0.60/tcp/50000".to_owned(),
+                "/ip4/90.1.0.61/tcp/50000".to_owned(),
             ]
         );
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Secp256k1);
@@ -888,6 +919,7 @@ mod tests {
         assert_eq!(config.settings.network.user_agent, "kore-node");
         assert_eq!(config.settings.network.node_type, NodeType::Bootstrap);
         assert!(config.settings.network.listen_addresses.is_empty(),);
+        assert!(config.settings.network.external_addresses.is_empty(),);
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Ed25519);
         assert_eq!(
             config.settings.node.digest_derivator,
@@ -971,6 +1003,9 @@ mod tests {
                 - "/ip4/127.0.0.1/tcp/50000"
                 - "/ip4/127.0.0.1/tcp/50001"
                 - "/ip4/127.0.0.1/tcp/50002"
+                external_addresses:
+                - "/ip4/90.1.0.60/tcp/50000"
+                - "/ip4/90.1.0.61/tcp/50000"
                 tell:
                     message_timeout_secs: 58
                     max_concurrent_streams: 166
@@ -1032,6 +1067,13 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50000".to_owned(),
                 "/ip4/127.0.0.1/tcp/50001".to_owned(),
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+        assert_eq!(
+            config.settings.network.external_addresses,
+            vec![
+                "/ip4/90.1.0.60/tcp/50000".to_owned(),
+                "/ip4/90.1.0.61/tcp/50000".to_owned(),
             ]
         );
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Secp256k1);
@@ -1165,6 +1207,7 @@ mod tests {
         assert_eq!(config.settings.network.user_agent, "kore-node");
         assert_eq!(config.settings.network.node_type, NodeType::Bootstrap);
         assert!(config.settings.network.listen_addresses.is_empty(),);
+        assert!(config.settings.network.external_addresses.is_empty(),);
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Ed25519);
         assert_eq!(
             config.settings.node.digest_derivator,
@@ -1256,6 +1299,9 @@ mod tests {
         kore:
             network:
                 user_agent: "Kore3.0"
+                external_addresses:
+                - "/ip4/90.1.0.60/tcp/50000"
+                - "/ip4/90.1.0.61/tcp/50000"
                 tell:
                     message_timeout_secs: 58
                     max_concurrent_streams: 166
@@ -1328,6 +1374,13 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50000".to_owned(),
                 "/ip4/127.0.0.1/tcp/50001".to_owned(),
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+        assert_eq!(
+            config.settings.network.external_addresses,
+            vec![
+                "/ip4/90.1.0.60/tcp/50000".to_owned(),
+                "/ip4/90.1.0.61/tcp/50000".to_owned(),
             ]
         );
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Secp256k1);
@@ -1440,6 +1493,7 @@ mod tests {
         assert_eq!(config.settings.network.user_agent, "kore-node");
         assert_eq!(config.settings.network.node_type, NodeType::Bootstrap);
         assert!(config.settings.network.listen_addresses.is_empty(),);
+        assert!(config.settings.network.external_addresses.is_empty(),);
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Ed25519);
         assert_eq!(
             config.settings.node.digest_derivator,
@@ -1520,6 +1574,7 @@ mod tests {
         node_type = "Addressable"
         port_reuse = true
         listen_addresses = ["/ip4/127.0.0.1/tcp/50000","/ip4/127.0.0.1/tcp/50001","/ip4/127.0.0.1/tcp/50002"]
+        external_addresses = ["/ip4/90.1.0.60/tcp/50000","/ip4/90.1.0.61/tcp/50000"]
         
         [kore.network.tell]
         message_timeout_secs = 58
@@ -1581,6 +1636,13 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50000".to_owned(),
                 "/ip4/127.0.0.1/tcp/50001".to_owned(),
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+        assert_eq!(
+            config.settings.network.external_addresses,
+            vec![
+                "/ip4/90.1.0.60/tcp/50000".to_owned(),
+                "/ip4/90.1.0.61/tcp/50000".to_owned(),
             ]
         );
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Secp256k1);
@@ -1714,6 +1776,7 @@ mod tests {
         assert_eq!(config.settings.network.user_agent, "kore-node");
         assert_eq!(config.settings.network.node_type, NodeType::Bootstrap);
         assert!(config.settings.network.listen_addresses.is_empty(),);
+        assert!(config.settings.network.external_addresses.is_empty(),);
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Ed25519);
         assert_eq!(
             config.settings.node.digest_derivator,
@@ -1805,6 +1868,7 @@ mod tests {
         [kore.network]
         user_agent = "Kore3.0"
         port_reuse = true
+        external_addresses = ["/ip4/90.1.0.60/tcp/50000","/ip4/90.1.0.61/tcp/50000"]
         
         [kore.network.tell]
         message_timeout_secs = 58
@@ -1877,6 +1941,13 @@ mod tests {
                 "/ip4/127.0.0.1/tcp/50000".to_owned(),
                 "/ip4/127.0.0.1/tcp/50001".to_owned(),
                 "/ip4/127.0.0.1/tcp/50002".to_owned()
+            ]
+        );
+        assert_eq!(
+            config.settings.network.external_addresses,
+            vec![
+                "/ip4/90.1.0.60/tcp/50000".to_owned(),
+                "/ip4/90.1.0.61/tcp/50000".to_owned(),
             ]
         );
         assert_eq!(config.settings.node.key_derivator, KeyDerivator::Secp256k1);
