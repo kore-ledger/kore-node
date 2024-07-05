@@ -542,7 +542,14 @@ fn default_true() -> bool {
 }
 
 fn default_protocol_name() -> Vec<String> {
-    vec!["/kore/routing/1.0.0".to_owned()]
+    vec![
+    "/kore/tell/1.0.0".to_owned(),
+    "/kore/reqres/1.0.0".to_owned(),
+    "/kore/routing/1.0.0".to_owned(),
+    "/ipfs/ping/1.0.0".to_owned(),
+    "/ipfs/id/push/1.0.0".to_owned(),
+    "/ipfs/id/id/1.0.0".to_owned(),
+    ]
 }
 
 fn default_discovery_only_if_under_num() -> u64 {
