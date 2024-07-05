@@ -761,7 +761,7 @@ mod tests {
         assert_eq!(routing.enable_mdns, true);
         assert_eq!(routing.kademlia_disjoint_query_paths, true);
         assert_eq!(routing.kademlia_replication_factor, 0);
-        assert_eq!(routing.protocol_names[0], "/kore/routing/1.0.0".to_owned());
+        assert_eq!(routing.protocol_names[0], "/kore/tell/1.0.0".to_owned());
     }
 
     #[test]

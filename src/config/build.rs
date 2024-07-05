@@ -116,7 +116,7 @@ mod tests {
     );
     assert_eq!(
         config.settings.network.routing.get_protocol_names(),
-        vec!["/kore/routing/1.0.0".to_owned()]
+        vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
     );
     assert_eq!(
         config.settings.network.tell.get_message_timeout(),
@@ -391,7 +391,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/routing/1.0.0".to_owned()]
+            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -692,7 +692,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/routing/1.0.0".to_owned()]
+            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -967,7 +967,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/routing/1.0.0".to_owned()]
+            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -1267,7 +1267,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/routing/1.0.0".to_owned()]
+            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -1541,7 +1541,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/routing/1.0.0".to_owned()]
+            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -1836,7 +1836,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/routing/1.0.0".to_owned()]
+            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
