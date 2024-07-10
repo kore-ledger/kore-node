@@ -113,7 +113,7 @@ impl KoreParams {
             node: NodeParams::from_env(&format!("{parent}_")),
             db_path: kore_params.db_path,
             keys_path: kore_params.keys_path,
-            prometheus: kore_params.prometheus
+            prometheus: kore_params.prometheus,
         }
     }
 
@@ -138,7 +138,7 @@ impl KoreParams {
             node: self.node.mix_config(other_config.node),
             db_path,
             keys_path,
-            prometheus
+            prometheus,
         }
     }
 }
@@ -163,7 +163,7 @@ impl Default for KoreParams {
             node: NodeParams::default(),
             db_path: default_db_path(),
             keys_path: default_keys_path(),
-            prometheus: default_prometheus()
+            prometheus: default_prometheus(),
         }
     }
 }
@@ -543,12 +543,8 @@ fn default_true() -> bool {
 
 fn default_protocol_name() -> Vec<String> {
     vec![
-    "/kore/tell/1.0.0".to_owned(),
-    "/kore/reqres/1.0.0".to_owned(),
-    "/kore/routing/1.0.0".to_owned(),
-    "/ipfs/ping/1.0.0".to_owned(),
-    "/ipfs/id/push/1.0.0".to_owned(),
-    "/ipfs/id/id/1.0.0".to_owned(),
+        "/kore/routing/1.0.0".to_owned(),
+        "/ipfs/ping/1.0.0".to_owned(),
     ]
 }
 
@@ -761,7 +757,7 @@ mod tests {
         assert_eq!(routing.enable_mdns, true);
         assert_eq!(routing.kademlia_disjoint_query_paths, true);
         assert_eq!(routing.kademlia_replication_factor, 0);
-        assert_eq!(routing.protocol_names[0], "/kore/tell/1.0.0".to_owned());
+        assert_eq!(routing.protocol_names[0], "/kore/routing/1.0.0".to_owned());
     }
 
     #[test]
@@ -957,7 +953,7 @@ mod tests {
                 "/ip4/90.0.0.2/tcp/50000".to_owned(),
             ]
         );
-    
+
         std::env::remove_var("KORE_NETWORK_PORT_REUSE");
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
@@ -1065,7 +1061,6 @@ mod tests {
             ]
         );
 
-
         assert_eq!(
             params.kore.network.external_addresses,
             vec![
@@ -1124,7 +1119,6 @@ mod tests {
             Duration::from_secs(58)
         );
         assert_eq!(params.kore.network.tell.max_concurrent_streams, 166);
-
 
         #[cfg(feature = "leveldb")]
         assert_eq!(

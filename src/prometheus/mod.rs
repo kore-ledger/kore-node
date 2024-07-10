@@ -1,3 +1,3 @@
 mod common;
-pub mod server;
 mod errors;
+pub mod server;

@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 pub mod api;
+pub mod config;
 mod database;
 pub mod error;
 pub mod model;
 pub mod node;
-pub mod config;
 #[cfg(feature = "prometheus")]
 mod prometheus;
 mod settings;
@@ -15,6 +15,6 @@ pub use clap;
 
 pub use api::KoreApi;
 #[cfg(feature = "leveldb")]
-pub use node::{LevelDBNode, KoreNode};
+pub use node::{KoreNode, LevelDBNode};
 #[cfg(feature = "sqlite")]
-pub use node::{SqliteNode, KoreNode};
+pub use node::{KoreNode, SqliteNode};
