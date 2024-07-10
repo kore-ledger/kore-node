@@ -142,13 +142,15 @@ impl DatabaseCollection for LeveldbCollection {
 
     fn put(&self, key: &str, data: &[u8]) -> Result<(), Error> {
         let key = self.generate_key(key);
-        self.data.put(self.get_write_options(), key, data)
+        self.data
+            .put(self.get_write_options(), key, data)
             .map_err(|error| Error::CustomError(format!("Error putting data: {}", error)))
     }
 
     fn del(&self, key: &str) -> Result<(), Error> {
         let key = self.generate_key(key);
-        self.data.delete(self.get_write_options(), key)
+        self.data
+            .delete(self.get_write_options(), key)
             .map_err(|error| Error::CustomError(format!("Error deletting data: {}", error)))
     }
 
@@ -187,7 +189,10 @@ pub struct LeveldbIterator<'a> {
 impl<'a> LeveldbIterator<'a> {
     pub fn new(iter: LevelIterator<'a, StringKey>, table_name: &str) -> Self {
         iter.seek(&StringKey(table_name.to_owned()));
-        Self { iter, table_name: table_name.to_owned() }
+        Self {
+            iter,
+            table_name: table_name.to_owned(),
+        }
     }
 }
 
@@ -213,7 +218,10 @@ pub struct RevLeveldbIterator<'a> {
 
 impl<'a> RevLeveldbIterator<'a> {
     pub fn new(iter: RevIterator<'a, StringKey>, table_name: &str) -> Self {
-        Self { iter, table_name: table_name.to_owned() }
+        Self {
+            iter,
+            table_name: table_name.to_owned(),
+        }
     }
 }
 

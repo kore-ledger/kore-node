@@ -321,7 +321,6 @@ impl From<BaseKoreRequest> for NodeKoreRequestState {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct NodeGetApprovals {
     /// Status of approvals

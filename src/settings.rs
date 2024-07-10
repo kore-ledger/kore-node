@@ -30,18 +30,17 @@ pub struct KoreSettings {
     #[serde(rename = "keysPath")]
     pub keys_path: String,
     /// TcpListener from prometheus axum server.
-    pub prometheus: String
+    pub prometheus: String,
 }
 
 #[cfg(feature = "sqlite")]
 impl Default for KoreSettings {
     fn default() -> Self {
-
         Self {
             settings: BaseSettings::default(),
             db: DbSettings::Sqlite("examples/sqlitedb/database".to_owned()),
             keys_path: "examples/keys".to_owned(),
-            prometheus: "127.0.0.1:3050".to_owned()
+            prometheus: "127.0.0.1:3050".to_owned(),
         }
     }
 }
@@ -49,11 +48,11 @@ impl Default for KoreSettings {
 #[cfg(feature = "leveldb")]
 impl Default for KoreSettings {
     fn default() -> Self {
- Self {
+        Self {
             settings: BaseSettings::default(),
             db: DbSettings::LevelDB("examples/leveldb".to_owned()),
             keys_path: "examples/keys".to_owned(),
-            prometheus: "127.0.0.1:3050".to_owned()
+            prometheus: "127.0.0.1:3050".to_owned(),
         }
     }
 }

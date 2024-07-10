@@ -46,7 +46,6 @@ pub fn build_file_path() -> String {
     env::var("KORE_FILE_PATH").unwrap_or_default()
 }
 
-
 #[cfg(test)]
 mod tests {
     use std::{num::NonZeroUsize, time::Duration};
@@ -61,84 +60,83 @@ mod tests {
     #[test]
     #[serial]
     fn test_env_empty() {
+        let config = build_config(true, "");
 
-    let config = build_config(true, "");
+        assert_eq!(config.settings.network.port_reuse, false);
+        assert_eq!(config.settings.network.user_agent, "kore-node");
+        assert_eq!(config.settings.network.node_type, NodeType::Bootstrap);
+        assert!(config.settings.network.listen_addresses.is_empty(),);
+        assert!(config.settings.network.external_addresses.is_empty(),);
+        assert_eq!(config.settings.node.key_derivator, KeyDerivator::Ed25519);
+        assert_eq!(
+            config.settings.node.digest_derivator,
+            DigestDerivator::Blake3_256
+        );
+        assert_eq!(config.settings.node.replication_factor, 0.25f64);
+        assert_eq!(config.settings.node.timeout, 3000);
+        assert_eq!(config.settings.node.passvotation, 0);
+        assert_eq!(config.settings.node.smartcontracts_directory, "./contracts");
+        assert!(config.settings.network.routing.boot_nodes().is_empty(),);
 
-    assert_eq!(config.settings.network.port_reuse, false);
-    assert_eq!(config.settings.network.user_agent, "kore-node");
-    assert_eq!(config.settings.network.node_type, NodeType::Bootstrap);
-    assert!(config.settings.network.listen_addresses.is_empty(),);
-    assert!(config.settings.network.external_addresses.is_empty(),);
-    assert_eq!(config.settings.node.key_derivator, KeyDerivator::Ed25519);
-    assert_eq!(
-        config.settings.node.digest_derivator,
-        DigestDerivator::Blake3_256
-    );
-    assert_eq!(config.settings.node.replication_factor, 0.25f64);
-    assert_eq!(config.settings.node.timeout, 3000);
-    assert_eq!(config.settings.node.passvotation, 0);
-    assert_eq!(config.settings.node.smartcontracts_directory, "./contracts");
-    assert!(config.settings.network.routing.boot_nodes().is_empty(),);
+        assert_eq!(config.settings.network.routing.get_dht_random_walk(), true);
+        assert_eq!(
+            config.settings.network.routing.get_discovery_limit(),
+            std::u64::MAX
+        );
+        assert_eq!(
+            config
+                .settings
+                .network
+                .routing
+                .get_allow_non_globals_in_dht(),
+            false
+        );
+        assert_eq!(
+            config.settings.network.routing.get_allow_private_ip(),
+            false
+        );
+        assert_eq!(config.settings.network.routing.get_mdns(), true);
+        assert_eq!(
+            config
+                .settings
+                .network
+                .routing
+                .get_kademlia_disjoint_query_paths(),
+            true
+        );
+        assert_eq!(
+            config
+                .settings
+                .network
+                .routing
+                .get_kademlia_replication_factor(),
+            None
+        );
+        assert_eq!(
+            config.settings.network.routing.get_protocol_names(),
+            vec!["/kore/routing/1.0.0", "/ipfs/ping/1.0.0"]
+        );
+        assert_eq!(
+            config.settings.network.tell.get_message_timeout(),
+            Duration::from_secs(10)
+        );
+        assert_eq!(
+            config.settings.network.tell.get_max_concurrent_streams(),
+            100
+        );
 
-    assert_eq!(config.settings.network.routing.get_dht_random_walk(), true);
-    assert_eq!(
-        config.settings.network.routing.get_discovery_limit(),
-        std::u64::MAX
-    );
-    assert_eq!(
-        config
-            .settings
-            .network
-            .routing
-            .get_allow_non_globals_in_dht(),
-        false
-    );
-    assert_eq!(
-        config.settings.network.routing.get_allow_private_ip(),
-        false
-    );
-    assert_eq!(config.settings.network.routing.get_mdns(), true);
-    assert_eq!(
-        config
-            .settings
-            .network
-            .routing
-            .get_kademlia_disjoint_query_paths(),
-        true
-    );
-    assert_eq!(
-        config
-            .settings
-            .network
-            .routing
-            .get_kademlia_replication_factor(),
-        None
-    );
-    assert_eq!(
-        config.settings.network.routing.get_protocol_names(),
-        vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
-    );
-    assert_eq!(
-        config.settings.network.tell.get_message_timeout(),
-        Duration::from_secs(10)
-    );
-    assert_eq!(
-        config.settings.network.tell.get_max_concurrent_streams(),
-        100
-    );
-
-    #[cfg(feature = "leveldb")]
-    assert_eq!(
-        config.db,
-        DbSettings::LevelDB("examples/leveldb".to_owned())
-    );
-    #[cfg(feature = "sqlite")]
-    assert_eq!(
-        config.db,
-        DbSettings::Sqlite("examples/sqlitedb".to_owned())
-    );
-    assert_eq!(config.keys_path, "examples/keys".to_owned());
-    assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
+        #[cfg(feature = "leveldb")]
+        assert_eq!(
+            config.db,
+            DbSettings::LevelDB("examples/leveldb".to_owned())
+        );
+        #[cfg(feature = "sqlite")]
+        assert_eq!(
+            config.db,
+            DbSettings::Sqlite("examples/sqlitedb".to_owned())
+        );
+        assert_eq!(config.keys_path, "examples/keys".to_owned());
+        assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
     }
 
     #[test]
@@ -391,7 +389,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
+            vec!["/kore/routing/1.0.0", "/ipfs/ping/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -692,7 +690,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
+            vec!["/kore/routing/1.0.0", "/ipfs/ping/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -967,7 +965,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
+            vec!["/kore/routing/1.0.0", "/ipfs/ping/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -1267,7 +1265,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
+            vec!["/kore/routing/1.0.0", "/ipfs/ping/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -1477,7 +1475,6 @@ mod tests {
         std::env::remove_var("KORE_KEYS_PATH");
     }
 
-
     #[test]
     fn test_toml_empty_file() {
         let content = r#"
@@ -1541,7 +1538,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
+            vec!["/kore/routing/1.0.0", "/ipfs/ping/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),
@@ -1836,7 +1833,7 @@ mod tests {
         );
         assert_eq!(
             config.settings.network.routing.get_protocol_names(),
-            vec!["/kore/tell/1.0.0", "/kore/reqres/1.0.0", "/kore/routing/1.0.0", "/ipfs/ping/1.0.0", "/ipfs/id/push/1.0.0", "/ipfs/id/id/1.0.0"]
+            vec!["/kore/routing/1.0.0", "/ipfs/ping/1.0.0"]
         );
         assert_eq!(
             config.settings.network.tell.get_message_timeout(),

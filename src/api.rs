@@ -660,9 +660,7 @@ impl KoreApi {
     ///
     /// * `String - Controller ID
     ///
-    pub fn get_controller_id(
-        &self
-    ) -> String {
+    pub fn get_controller_id(&self) -> String {
         self.api.controller_id().clone()
     }
 
@@ -672,9 +670,7 @@ impl KoreApi {
     ///
     /// * `String - Peer ID
     ///
-    pub fn get_peer_id(
-        &self
-    ) -> String {
+    pub fn get_peer_id(&self) -> String {
         self.api.peer_id().to_string()
     }
 }
