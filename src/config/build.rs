@@ -137,6 +137,13 @@ mod tests {
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
+
+        assert!(config.settings.network.control_list.get_allow_list().is_empty());
+        assert!(config.settings.network.control_list.get_block_list().is_empty());
+        assert!(config.settings.network.control_list.get_service_allow_list().is_empty());
+        assert!(config.settings.network.control_list.get_service_block_list().is_empty());
+        assert!(!config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(60));
     }
 
     #[test]
@@ -180,6 +187,13 @@ mod tests {
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
         std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
+
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_ENABLE", "true");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_ALLOW_LIST", "Peer200,Peer300");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST", "Peer1,Peer2");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_SERVICE_ALLOW_LIST", "http://90.0.0.1:3000/allow_list,http://90.0.0.2:4000/allow_list");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST", "http://90.0.0.1:3000/block_list,http://90.0.0.2:4000/block_list");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_INTERVAL_REQUEST", "58");
 
         let config = build_config(true, "");
 
@@ -298,6 +312,13 @@ mod tests {
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
         assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
 
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert_eq!(config.settings.network.control_list.get_block_list(), vec!["Peer1", "Peer2"]);
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert_eq!(config.settings.network.control_list.get_service_block_list(), vec!["http://90.0.0.1:3000/block_list", "http://90.0.0.2:4000/block_list"]);
+        assert!(config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(58));
+
         std::env::remove_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS");
         std::env::remove_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS");
         std::env::remove_var("KORE_NETWORK_ROUTING_BOOT_NODES");
@@ -323,6 +344,12 @@ mod tests {
         std::env::remove_var("KORE_NODE_PASSVOTATION");
         std::env::remove_var("KORE_NODE_SMARTCONTRACTS_DIRECTORY");
         std::env::remove_var("KORE_PROMETHEUS");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_ENABLE");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_ALLOW_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_SERVICE_ALLOW_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_INTERVAL_REQUEST");
     }
 
     #[test]
@@ -412,6 +439,13 @@ mod tests {
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
+
+        assert!(config.settings.network.control_list.get_allow_list().is_empty());
+        assert!(config.settings.network.control_list.get_block_list().is_empty());
+        assert!(config.settings.network.control_list.get_service_allow_list().is_empty());
+        assert!(config.settings.network.control_list.get_service_block_list().is_empty());
+        assert!(!config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(60));
     }
 
     #[test]
@@ -427,6 +461,14 @@ mod tests {
                   "tell": {
                     "message_timeout_secs": 58,
                     "max_concurrent_streams": 166
+                  },
+                  "control_list": {
+                    "enable": true,
+                    "allow_list": ["Peer200", "Peer300"],
+                    "block_list": ["Peer1", "Peer2"],
+                    "service_allow_list": ["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"],
+                    "service_block_list": ["http://90.0.0.1:3000/block_list", "http://90.0.0.2:4000/block_list"],
+                    "interval_request": 99
                   },
                   "routing": {
                     "boot_nodes": ["/ip4/172.17.0.1/tcp/50000_/ip4/127.0.0.1/tcp/60001/p2p/12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B","/ip4/11.11.0.11/tcp/10000_/ip4/12.22.33.44/tcp/55511/p2p/12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze"],
@@ -574,6 +616,13 @@ mod tests {
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
         assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
+
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert_eq!(config.settings.network.control_list.get_block_list(), vec!["Peer1", "Peer2"]);
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert_eq!(config.settings.network.control_list.get_service_block_list(), vec!["http://90.0.0.1:3000/block_list", "http://90.0.0.2:4000/block_list"]);
+        assert!(config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(99));
     }
 
     #[test]
@@ -585,6 +634,11 @@ mod tests {
                   "tell": {
                     "message_timeout_secs": 58,
                     "max_concurrent_streams": 166
+                  },
+                  "control_list": {
+                    "allow_list": ["Peer200", "Peer300"],
+                    "service_allow_list": ["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"],
+                    "interval_request": 99
                   },
                   "routing": {
                     "boot_nodes": ["/ip4/172.17.0.1/tcp/50000_/ip4/127.0.0.1/tcp/60001/p2p/12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B","/ip4/11.11.0.11/tcp/10000_/ip4/12.22.33.44/tcp/55511/p2p/12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze"],
@@ -713,6 +767,13 @@ mod tests {
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
+
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert!(config.settings.network.control_list.get_block_list().is_empty());
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert!(config.settings.network.control_list.get_service_block_list().is_empty());
+        assert!(!config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(99));
     }
 
     #[test]
@@ -727,6 +788,11 @@ mod tests {
                   "tell": {
                     "message_timeout_secs": 58,
                     "max_concurrent_streams": 166
+                  },
+                  "control_list": {
+                    "allow_list": ["Peer200", "Peer300"],
+                    "service_allow_list": ["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"],
+                    "interval_request": 99
                   },
                   "routing": {
                     "boot_nodes": ["/ip4/172.17.0.1/tcp/50000_/ip4/127.0.0.1/tcp/60001/p2p/12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B","/ip4/11.11.0.11/tcp/10000_/ip4/12.22.33.44/tcp/55511/p2p/12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze"],
@@ -767,6 +833,9 @@ mod tests {
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
         std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
 
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_ENABLE", "true");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST", "Peer1,Peer2");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST", "http://90.0.0.1:3000/block_list,http://90.0.0.2:4000/block_list");
         let temp_dir = TempDir::new().unwrap();
         let temp_file_path = temp_dir.path().join("config.json");
         std::fs::write(&temp_file_path, content.to_string().as_bytes()).unwrap();
@@ -888,6 +957,13 @@ mod tests {
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
         assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
 
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert_eq!(config.settings.network.control_list.get_block_list(), vec!["Peer1", "Peer2"]);
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert_eq!(config.settings.network.control_list.get_service_block_list(), vec!["http://90.0.0.1:3000/block_list", "http://90.0.0.2:4000/block_list"]);
+        assert!(config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(99));
+
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
         std::env::remove_var("KORE_NETWORK_LISTEN_ADDRESSES");
@@ -900,6 +976,9 @@ mod tests {
         std::env::remove_var("KORE_DB_PATH");
         std::env::remove_var("KORE_KEYS_PATH");
         std::env::remove_var("KORE_PROMETHEUS");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_ENABLE");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST");
     }
 
     #[test]
@@ -988,6 +1067,13 @@ mod tests {
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
+
+        assert!(config.settings.network.control_list.get_allow_list().is_empty());
+        assert!(config.settings.network.control_list.get_block_list().is_empty());
+        assert!(config.settings.network.control_list.get_service_allow_list().is_empty());
+        assert!(config.settings.network.control_list.get_service_block_list().is_empty());
+        assert!(!config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(60));
     }
 
     #[test]
@@ -995,6 +1081,21 @@ mod tests {
         let content = r#"
         kore:
             network:
+                control_list:
+                    allow_list:
+                    - "Peer200"
+                    - "Peer300"
+                    block_list:
+                    - "Peer1"
+                    - "Peer2"
+                    service_allow_list:
+                    - "http://90.0.0.1:3000/allow_list"
+                    - "http://90.0.0.2:4000/allow_list"
+                    service_block_list:
+                    - "http://90.0.0.1:3000/block_list"
+                    - "http://90.0.0.2:4000/block_list"
+                    interval_request: 99
+                    enable: true
                 user_agent: "Kore2.0"
                 node_type: "Addressable"
                 listen_addresses:
@@ -1153,13 +1254,29 @@ mod tests {
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
         assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
+
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert_eq!(config.settings.network.control_list.get_block_list(), vec!["Peer1", "Peer2"]);
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert_eq!(config.settings.network.control_list.get_service_block_list(), vec!["http://90.0.0.1:3000/block_list", "http://90.0.0.2:4000/block_list"]);
+        assert!(config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(99));
     }
+
 
     #[test]
     fn test_yaml_partial_file() {
         let content = r#"
         kore:
             network:
+                control_list:
+                    allow_list:
+                    - "Peer200"
+                    - "Peer300"
+                    service_allow_list:
+                    - "http://90.0.0.1:3000/allow_list"
+                    - "http://90.0.0.2:4000/allow_list"
+                    interval_request: 99
                 tell:
                     message_timeout_secs: 58
                     max_concurrent_streams: 166
@@ -1288,6 +1405,14 @@ mod tests {
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
+
+
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert!(config.settings.network.control_list.get_block_list().is_empty());
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert!(config.settings.network.control_list.get_service_block_list().is_empty());
+        assert!(!config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(99));
     }
 
     #[test]
@@ -1296,6 +1421,14 @@ mod tests {
         let content = r#"
         kore:
             network:
+                control_list:
+                    allow_list:
+                    - "Peer200"
+                    - "Peer300"
+                    service_allow_list:
+                    - "http://90.0.0.1:3000/allow_list"
+                    - "http://90.0.0.2:4000/allow_list"
+                    interval_request: 99
                 user_agent: "Kore3.0"
                 external_addresses:
                 - "/ip4/90.1.0.60/tcp/50000"
@@ -1339,6 +1472,9 @@ mod tests {
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
         std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_ENABLE", "true");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST", "Peer1,Peer2");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST", "http://90.0.0.1:3000/block_list,http://90.0.0.2:4000/block_list");
 
         let temp_dir = TempDir::new().unwrap();
         let temp_file_path = temp_dir.path().join("config.yaml");
@@ -1461,6 +1597,13 @@ mod tests {
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
         assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
 
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert_eq!(config.settings.network.control_list.get_block_list(), vec!["Peer1", "Peer2"]);
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert_eq!(config.settings.network.control_list.get_service_block_list(), vec!["http://90.0.0.1:3000/block_list", "http://90.0.0.2:4000/block_list"]);
+        assert!(config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(99));
+
         std::env::remove_var("KORE_PROMETHEUS");
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
@@ -1473,6 +1616,9 @@ mod tests {
         std::env::remove_var("KORE_NODE_DIGEST_DERIVATOR");
         std::env::remove_var("KORE_DB_PATH");
         std::env::remove_var("KORE_KEYS_PATH");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_ENABLE");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST");
     }
 
     #[test]
@@ -1561,6 +1707,13 @@ mod tests {
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
+
+        assert!(config.settings.network.control_list.get_allow_list().is_empty());
+        assert!(config.settings.network.control_list.get_block_list().is_empty());
+        assert!(config.settings.network.control_list.get_service_allow_list().is_empty());
+        assert!(config.settings.network.control_list.get_service_block_list().is_empty());
+        assert!(!config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(60));
     }
 
     #[test]
@@ -1573,6 +1726,14 @@ mod tests {
         listen_addresses = ["/ip4/127.0.0.1/tcp/50000","/ip4/127.0.0.1/tcp/50001","/ip4/127.0.0.1/tcp/50002"]
         external_addresses = ["/ip4/90.1.0.60/tcp/50000","/ip4/90.1.0.61/tcp/50000"]
         
+        [kore.network.control_list]
+        enable = true
+        allow_list = ["Peer200", "Peer300"]
+        block_list = ["Peer1", "Peer2"]
+        service_allow_list = ["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]
+        service_block_list = ["http://90.0.0.1:3000/block_list", "http://90.0.0.2:4000/block_list"]
+        interval_request = 99
+
         [kore.network.tell]
         message_timeout_secs = 58
         max_concurrent_streams = 166
@@ -1721,6 +1882,13 @@ mod tests {
         assert_eq!(config.db, DbSettings::Sqlite("./fake/db/path".to_owned()));
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
         assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
+
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert_eq!(config.settings.network.control_list.get_block_list(), vec!["Peer1", "Peer2"]);
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert_eq!(config.settings.network.control_list.get_service_block_list(), vec!["http://90.0.0.1:3000/block_list", "http://90.0.0.2:4000/block_list"]);
+        assert!(config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(99));
     }
 
     #[test]
@@ -1736,6 +1904,11 @@ mod tests {
         discovery_only_if_under_num = 55
         allow_non_globals_in_dht = true
         allow_private_ip = true
+
+        [kore.network.control_list]
+        allow_list = ["Peer200", "Peer300"]
+        service_allow_list = ["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]
+        interval_request = 99
         
         [kore.network]
         port_reuse = true
@@ -1856,6 +2029,14 @@ mod tests {
         );
         assert_eq!(config.keys_path, "examples/keys".to_owned());
         assert_eq!(config.prometheus, "0.0.0.0:3050".to_owned());
+
+
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert!(config.settings.network.control_list.get_block_list().is_empty());
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert!(config.settings.network.control_list.get_service_block_list().is_empty());
+        assert!(!config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(99));
     }
 
     #[test]
@@ -1870,6 +2051,11 @@ mod tests {
         [kore.network.tell]
         message_timeout_secs = 58
         max_concurrent_streams = 166
+
+        [kore.network.control_list]
+        allow_list = ["Peer200", "Peer300"]
+        service_allow_list = ["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]
+        interval_request = 99
         
         [kore.network.routing]
         boot_nodes = ["/ip4/172.17.0.1/tcp/50000_/ip4/127.0.0.1/tcp/60001/p2p/12D3KooWLXexpg81PjdjnrhmHUxN7U5EtfXJgr9cahei1SJ9Ub3B", "/ip4/11.11.0.11/tcp/10000_/ip4/12.22.33.44/tcp/55511/p2p/12D3KooWRS3QVwqBtNp7rUCG4SF3nBrinQqJYC1N5qc1Wdr4jrze"]
@@ -1905,6 +2091,9 @@ mod tests {
         std::env::set_var("KORE_DB_PATH", "./fake/db/path");
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
         std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_ENABLE", "true");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST", "Peer1,Peer2");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST", "http://90.0.0.1:3000/block_list,http://90.0.0.2:4000/block_list");
 
         let temp_dir = TempDir::new().unwrap();
         let temp_file_path = temp_dir.path().join("config.toml");
@@ -2027,6 +2216,13 @@ mod tests {
         assert_eq!(config.keys_path, "./fake/keys/path".to_owned());
         assert_eq!(config.prometheus, "10.0.0.0:3030".to_owned());
 
+        assert_eq!(config.settings.network.control_list.get_allow_list(), vec!["Peer200", "Peer300"]);
+        assert_eq!(config.settings.network.control_list.get_block_list(), vec!["Peer1", "Peer2"]);
+        assert_eq!(config.settings.network.control_list.get_service_allow_list(), vec!["http://90.0.0.1:3000/allow_list", "http://90.0.0.2:4000/allow_list"]);
+        assert_eq!(config.settings.network.control_list.get_service_block_list(), vec!["http://90.0.0.1:3000/block_list", "http://90.0.0.2:4000/block_list"]);
+        assert!(config.settings.network.control_list.get_enable());
+        assert_eq!(config.settings.network.control_list.get_interval_request(), Duration::from_secs(99));
+
         std::env::remove_var("KORE_PROMETHEUS");
         std::env::remove_var("KORE_NETWORK_USER_AGENT");
         std::env::remove_var("KORE_NETWORK_NODE_TYPE");
@@ -2039,5 +2235,8 @@ mod tests {
         std::env::remove_var("KORE_NODE_DIGEST_DERIVATOR");
         std::env::remove_var("KORE_DB_PATH");
         std::env::remove_var("KORE_KEYS_PATH");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_ENABLE");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST");
     }
 }
