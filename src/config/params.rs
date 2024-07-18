@@ -45,6 +45,14 @@ impl From<Params> for KoreSettings {
             )
             .set_all_protocols(params.kore.network.routing.protocol_names);
 
+        let control_list = kore_base::ControlListConfig::default()
+            .with_allow_list(params.kore.network.control_list.allow_list)
+            .with_block_list(params.kore.network.control_list.block_list)
+            .with_enable(params.kore.network.control_list.enable)
+            .with_interval_request(params.kore.network.control_list.interval_request)
+            .with_service_allow_list(params.kore.network.control_list.service_allow_list)
+            .with_service_block_list(params.kore.network.control_list.service_block_list);
+
         Self {
             db: params.kore.db_path,
             keys_path: params.kore.keys_path,
@@ -58,6 +66,7 @@ impl From<Params> for KoreSettings {
                     tell,
                     routing,
                     port_reuse: params.kore.network.port_reuse,
+                    control_list,
                 },
                 node: NodeSettings {
                     digest_derivator: kore_base::DigestDerivator::from(
@@ -201,6 +210,8 @@ struct NetworkParams {
     routing: RoutingParams,
     #[serde(default)]
     port_reuse: bool,
+    #[serde(default)]
+    control_list: ControlListParams,
 }
 
 impl NetworkParams {
@@ -239,6 +250,7 @@ impl NetworkParams {
             tell: TellParams::from_env(parent),
             routing: RoutingParams::from_env(parent),
             port_reuse: network.port_reuse,
+            control_list: ControlListParams::from_env(parent),
         }
     }
 
@@ -281,6 +293,7 @@ impl NetworkParams {
             tell: self.tell.mix_config(other_config.tell),
             routing: self.routing.mix_config(other_config.routing),
             port_reuse,
+            control_list: self.control_list.mix_config(other_config.control_list),
         }
     }
 }
@@ -303,6 +316,125 @@ impl Default for NetworkParams {
             tell: TellParams::default(),
             routing: RoutingParams::default(),
             port_reuse: false,
+            control_list: ControlListParams::default(),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct ControlListParams {
+    #[serde(default)]
+    enable: bool,
+    #[serde(default)]
+    allow_list: Vec<String>,
+    #[serde(default)]
+    block_list: Vec<String>,
+    #[serde(default)]
+    service_allow_list: Vec<String>,
+    #[serde(default)]
+    service_block_list: Vec<String>,
+    #[serde(
+        default = "default_interval_request_secs",
+        deserialize_with = "deserialize_duration_secs"
+    )]
+    interval_request: Duration,
+}
+
+impl Default for ControlListParams {
+    fn default() -> Self {
+        Self {
+            allow_list: vec![],
+            block_list: vec![],
+            enable: false,
+            interval_request: default_interval_request_secs(),
+            service_allow_list: vec![],
+            service_block_list: vec![],
+        }
+    }
+}
+
+fn default_interval_request_secs() -> Duration {
+    Duration::from_secs(60)
+}
+
+impl ControlListParams {
+    fn from_env(parent: &str) -> Self {
+        let mut config = config::Config::builder();
+        config = config.add_source(
+            config::Environment::with_prefix(&format!("{parent}CONTROL_LIST"))
+                .list_separator(",")
+                .with_list_parse_key("allow_list")
+                .try_parsing(true)
+                .list_separator(",")
+                .with_list_parse_key("block_list")
+                .try_parsing(true)
+                .list_separator(",")
+                .with_list_parse_key("service_allow_list")
+                .try_parsing(true)
+                .list_separator(",")
+                .with_list_parse_key("service_block_list")
+                .try_parsing(true),
+        );
+
+        let config = config
+            .build()
+            .map_err(|e| {
+                println!("Error building config: {}", e);
+            })
+            .unwrap();
+
+        config
+            .try_deserialize()
+            .map_err(|e| {
+                println!("Error try deserialize config: {}", e);
+            })
+            .unwrap()
+    }
+
+    fn mix_config(&self, other_config: ControlListParams) -> Self {
+        let enable = if other_config.enable {
+            true
+        } else {
+            self.enable.clone()
+        };
+
+        let allow_list = if !other_config.allow_list.is_empty() {
+            other_config.allow_list
+        } else {
+            self.allow_list.clone()
+        };
+
+        let block_list = if !other_config.block_list.is_empty() {
+            other_config.block_list
+        } else {
+            self.block_list.clone()
+        };
+
+        let service_allow_list = if !other_config.service_allow_list.is_empty() {
+            other_config.service_allow_list
+        } else {
+            self.service_allow_list.clone()
+        };
+
+        let service_block_list = if !other_config.service_block_list.is_empty() {
+            other_config.service_block_list
+        } else {
+            self.service_block_list.clone()
+        };
+
+        let interval_request = if other_config.interval_request != default_interval_request_secs() {
+            other_config.interval_request
+        } else {
+            self.interval_request
+        };
+
+        Self {
+            allow_list,
+            block_list,
+            enable,
+            interval_request,
+            service_allow_list,
+            service_block_list,
         }
     }
 }
@@ -311,7 +443,7 @@ impl Default for NetworkParams {
 struct TellParams {
     #[serde(
         default = "default_message_timeout_secs",
-        deserialize_with = "deserialize_message_timeout_secs"
+        deserialize_with = "deserialize_duration_secs"
     )]
     message_timeout_secs: Duration,
     #[serde(default = "default_max_concurrent_streams")]
@@ -368,7 +500,7 @@ impl Default for TellParams {
     }
 }
 
-fn deserialize_message_timeout_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
+fn deserialize_duration_secs<'de, D>(deserializer: D) -> Result<Duration, D::Error>
 where
     D: Deserializer<'de>,
 {
@@ -726,8 +858,8 @@ mod tests {
 
     use crate::{
         config::params::{
-            DigestDerivatorParams, KeyDerivatorParams, KoreParams, NetworkParams, NodeParams,
-            Params, RoutingParams,
+            ControlListParams, DigestDerivatorParams, KeyDerivatorParams, KoreParams,
+            NetworkParams, NodeParams, Params, RoutingParams,
         },
         settings::DbSettings,
     };
@@ -741,6 +873,19 @@ mod tests {
 
         assert_eq!(tell.message_timeout_secs, Duration::from_secs(10));
         assert_eq!(tell.max_concurrent_streams, 100);
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_control_list_default() {
+        let control_list = ControlListParams::from_env("KORE_NETWORK_");
+
+        assert!(control_list.allow_list.is_empty());
+        assert!(control_list.block_list.is_empty());
+        assert!(control_list.service_allow_list.is_empty());
+        assert!(control_list.service_block_list.is_empty());
+        assert!(!control_list.enable);
+        assert_eq!(control_list.interval_request, Duration::from_secs(60));
     }
 
     #[test]
@@ -817,6 +962,51 @@ mod tests {
 
         std::env::remove_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS");
         std::env::remove_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS");
+    }
+
+    #[test]
+    #[serial]
+    fn test_from_env_control_list_values() {
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_ENABLE", "true");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_ALLOW_LIST", "Peer200,Peer300");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST", "Peer1,Peer2");
+        std::env::set_var(
+            "KORE_NETWORK_CONTROL_LIST_SERVICE_ALLOW_LIST",
+            "http://90.0.0.1:3000/allow_list,http://90.0.0.2:4000/allow_list",
+        );
+        std::env::set_var(
+            "KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST",
+            "http://90.0.0.1:3000/block_list,http://90.0.0.2:4000/block_list",
+        );
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_INTERVAL_REQUEST", "58");
+
+        let control_list = ControlListParams::from_env("KORE_NETWORK_");
+
+        assert_eq!(control_list.allow_list, vec!["Peer200", "Peer300"]);
+        assert_eq!(control_list.block_list, vec!["Peer1", "Peer2"]);
+        assert_eq!(
+            control_list.service_allow_list,
+            vec![
+                "http://90.0.0.1:3000/allow_list",
+                "http://90.0.0.2:4000/allow_list"
+            ]
+        );
+        assert_eq!(
+            control_list.service_block_list,
+            vec![
+                "http://90.0.0.1:3000/block_list",
+                "http://90.0.0.2:4000/block_list"
+            ]
+        );
+        assert!(control_list.enable);
+        assert_eq!(control_list.interval_request, Duration::from_secs(58));
+
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_ENABLE");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_ALLOW_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_SERVICE_ALLOW_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_INTERVAL_REQUEST");
     }
 
     #[test]
@@ -1031,6 +1221,19 @@ mod tests {
         std::env::set_var("KORE_KEYS_PATH", "./fake/keys/path");
         std::env::set_var("KORE_PROMETHEUS", "10.0.0.0:3030");
 
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_ENABLE", "true");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_ALLOW_LIST", "Peer200,Peer300");
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST", "Peer1,Peer2");
+        std::env::set_var(
+            "KORE_NETWORK_CONTROL_LIST_SERVICE_ALLOW_LIST",
+            "http://90.0.0.1:3000/allow_list,http://90.0.0.2:4000/allow_list",
+        );
+        std::env::set_var(
+            "KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST",
+            "http://90.0.0.1:3000/block_list,http://90.0.0.2:4000/block_list",
+        );
+        std::env::set_var("KORE_NETWORK_CONTROL_LIST_INTERVAL_REQUEST", "58");
+
         let params = Params::from_env();
         let boot_nodes = vec![
             RoutingNode {
@@ -1133,6 +1336,34 @@ mod tests {
         assert_eq!(params.kore.keys_path, "./fake/keys/path".to_owned());
         assert_eq!(params.kore.prometheus, "10.0.0.0:3030".to_owned());
 
+        assert_eq!(
+            params.kore.network.control_list.allow_list,
+            vec!["Peer200", "Peer300"]
+        );
+        assert_eq!(
+            params.kore.network.control_list.block_list,
+            vec!["Peer1", "Peer2"]
+        );
+        assert_eq!(
+            params.kore.network.control_list.service_allow_list,
+            vec![
+                "http://90.0.0.1:3000/allow_list",
+                "http://90.0.0.2:4000/allow_list"
+            ]
+        );
+        assert_eq!(
+            params.kore.network.control_list.service_block_list,
+            vec![
+                "http://90.0.0.1:3000/block_list",
+                "http://90.0.0.2:4000/block_list"
+            ]
+        );
+        assert!(params.kore.network.control_list.enable);
+        assert_eq!(
+            params.kore.network.control_list.interval_request,
+            Duration::from_secs(58)
+        );
+
         std::env::remove_var("KORE_NETWORK_TELL_MESSAGE_TIMEOUT_SECS");
         std::env::remove_var("KORE_NETWORK_TELL_MAX_CONCURRENT_STREAMS");
         std::env::remove_var("KORE_NETWORK_ROUTING_BOOT_NODES");
@@ -1159,5 +1390,11 @@ mod tests {
         std::env::remove_var("KORE_NODE_PASSVOTATION");
         std::env::remove_var("KORE_NODE_SMARTCONTRACTS_DIRECTORY");
         std::env::remove_var("KORE_PROMETHEUS");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_ENABLE");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_ALLOW_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_BLOCK_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_SERVICE_ALLOW_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_SERVICE_BLOCK_LIST");
+        std::env::remove_var("KORE_NETWORK_CONTROL_LIST_INTERVAL_REQUEST");
     }
 }
